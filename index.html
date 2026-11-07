@@ -570,9 +570,9 @@ function viewHome() {
     if (all.weak) sp += `<span><b>${all.weak}</b> 不熟悉</span>`;
     if (all.wrong) sp += `<span><b>${all.wrong}</b> 錯題</span>`;
     h += `<div class="hero-row"><span class="n">${all.due}</span><span class="cap">張今天要複習</span></div><div class="stats">${sp || '&nbsp;'}</div>`;
-    h += `<div class="go"><button class="btn" data-act="quick">開始複習（${run} 張）</button><button class="more" data-act="adjust">調整</button></div>`;
+    h += `<div class="go"><button class="btn" data-act="quick">開始複習（${run} 張）</button></div>`;
   } else {
-    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，可以挑不熟悉或錯題再來一輪</span></div><div class="go"><button class="btn" data-act="adjust">自選範圍複習</button></div>`;
+    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，點下面的“全部混合”，可以挑不熟悉或錯題再來一輪</span></div>`;
   }
   h += `</section>`;
   h += goalHTML();
@@ -690,11 +690,11 @@ function viewStudy() {
     h += `</div>`;
     if (S.picked !== null) {
       const ok = S.opts[S.picked] === fa;
+      h += `<button class="btn" data-act="next" style="margin-top:4px">下一題</button>`;
       h += `<div class="fb ${ok ? 'ok-t' : 'bad-t'}">${ok ? '答對了' : '答錯了，正確答案已標示'}</div>`;
+      if (ok) h += `<div style="margin:2px 0 10px"><button class="chip ${S.easy ? 'on' : ''}" data-act="easy">這題很簡單</button></div>`;
       if (c.rd) h += `<div class="rd" style="text-align:center;margin:2px 0 4px">${esc(c.rd)}</div>`;
       if (c.note) h += `<div class="card nt" style="white-space:pre-wrap;margin-top:6px">${esc(c.note)}</div>`;
-      if (ok) h += `<div style="margin:10px 0 14px"><button class="chip ${S.easy ? 'on' : ''}" data-act="easy">這題很簡單</button></div>`;
-      h += `<button class="btn" data-act="next">下一題</button>`;
     }
   } else {
     h += `<div class="fl-wrap"><div class="stage${enterCls}"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
