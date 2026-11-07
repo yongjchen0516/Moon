@@ -196,6 +196,7 @@ label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
 .at{font:600 26px/1.65 var(--serif);color:var(--acc);letter-spacing:.02em}
 .nt{font-size:15px;line-height:1.75;color:var(--sub)}
 .hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:13px;color:var(--sub);opacity:.8}
+.pill:disabled{opacity:.4}
 .rd{font:500 20px/1.6 var(--serif);color:var(--sub);letter-spacing:.06em;margin-top:2px}
 .spk{position:absolute;top:10px;left:12px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--sub);z-index:2}
 .spk:active{background:var(--line)}
@@ -269,7 +270,7 @@ pre{white-space:pre-wrap;word-break:break-all;background:var(--bg);border-radius
 const KEY = 'review-cards-v1';
 const RATE_LABELS = ['不會', '模糊', '記得', '很熟'];
 const PROMPT = `請根據我附上的筆記照片，產生複習用題目卡片。
-只輸出一個 JSON 程式碼區塊，不要有其他說明文字，格式如下：
+只輸出一個 JSON 代碼塊，不要有其他說明文字，格式如下：
 {"decks":[{"name":"牌組名稱","cards":[{"q":"問題","a":"簡短答案","wrong":["干擾1","干擾2","干擾3"],"note":"補充說明"}]}]}
 規則：
 - 每張卡只問一個概念，答案盡量簡短（一句話以內）
@@ -278,7 +279,7 @@ const PROMPT = `請根據我附上的筆記照片，產生複習用題目卡片�
 - 不要編造照片中沒有的內容`;
 
 const PROMPT_VOCAB = `請根據我附上的單詞清單或筆記照片，產生外語單字卡。
-只輸出一個 JSON 程式碼區塊，不要有其他說明文字，格式如下：
+只輸出一個 JSON 代碼塊，不要有其他說明文字，格式如下：
 {"decks":[{"name":"牌組名稱","type":"vocab","cards":[{"q":"單字（日文請写漢字或原文写法）","rd":"讀音（假名；沒有漢字時可留空）","a":"簡短中文意思","wrong":["相似單字的意思1","意思2","意思3"],"note":"例句\\n例句翻譯"}]}]}
 規則：
 - 一張卡一個單字；a 只写最常用的 1～2 個意思，使用繁體中文（台灣用語）
@@ -420,25 +421,25 @@ function lbl(iv, r) { if (r === 0) return '10 分'; if (iv < 30) return iv + ' �
 function preview(c, r) { const t = Object.assign({}, c); rate(t, r); return lbl(t.interval, r); }
 
 /* ---------- session ---------- */
-function buildQueue(scope, f, n) {
-  let p = shuffle(poolFor(scope).filter(x => match(x.c, f)));
+function buildQueue(scope, f, n, order) {
+  let p = poolFor(scope).filter(x => match(x.c, f));
   const g = x => x.c.weak ? 0 : x.c.inWrong ? 1 : x.c.seen ? 2 : 3;
-  p.sort((a, b) => g(a) - g(b));
+  if (order !== 'seq') { p = shuffle(p); p.sort((a, b) => g(a) - g(b)); }
   if (n > 0) p = p.slice(0, n);
   return p.map(x => ({ did: x.d.id, cid: x.c.id }));
 }
 function startSession(cfg) {
-  const queue = buildQueue(cfg.scope, cfg.filter, cfg.count);
+  const queue = buildQueue(cfg.scope, cfg.filter, cfg.count, cfg.mode === 'browse' ? (cfg.order || 'seq') : 'rand');
   if (!queue.length) { toast('沒有符合的卡片'); return; }
   S = { cfg, queue, idx: 0, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true };
-  Object.assign(store.settings, { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode, count: cfg.count, dir: (deck(cfg.scope) && deck(cfg.scope).type === 'vocab') ? (store.settings.dir || 'f') : (cfg.dir || 'f'), tts: cfg.tts || 'auto' }); save();
+  Object.assign(store.settings, { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode === 'browse' ? store.settings.mode : cfg.mode, count: cfg.count, dir: (deck(cfg.scope) && deck(cfg.scope).type === 'vocab') ? (store.settings.dir || 'f') : (cfg.dir || 'f'), tts: cfg.tts || 'auto' }); save();
   enter();
   go('study');
 }
 function enter() {
   while (S.queue[S.idx]) { const f0 = find(S.queue[S.idx].did, S.queue[S.idx].cid); if (f0 && (S.cfg.filter === 'known' || !f0.c.known)) break; S.idx++; }
   S.flipped = false; S.picked = null; S.opts = null; S.easy = false; S.anim = true;
-  S.rev = S.cfg.dir === 'r' || (S.cfg.dir === 'x' && Math.random() < 0.5);
+  S.rev = S.cfg.dir === 'r' || (S.cfg.dir === 'x' && S.cfg.mode !== 'browse' && Math.random() < 0.5);
   const it = S.queue[S.idx];
   if (it && S.cfg.mode === 'mcq') { const f = find(it.did, it.cid); S.opts = makeOptions(it.did, f.c, S.rev); }
 }
@@ -549,13 +550,14 @@ function sheetHTML() {
     <div class="sub" style="margin:8px 0 0">範圍</div>
     <div class="opts">${frow('due', '待複習與新卡')}${frow('weak', '不熟')}${frow('wrong', '錯題本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
     <div class="sub">方式</div>
-    <div class="seg">${seg('set-mode', 'flip', sh.mode, '翻卡')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}</div>
+    <div class="seg">${seg('set-mode', 'flip', sh.mode, '翻卡')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}${seg('set-mode', 'browse', sh.mode, '瀏覽')}</div>
+    ${sh.mode === 'browse' ? `<div class="sub">順序（瀏覽不影响學習進度）</div><div class="seg">${seg('set-order', 'seq', sh.order, '依序')}${seg('set-order', 'rand', sh.order, '隨機')}</div>` : ''}
     <div class="sub">方向（反向：看答案，回想問題）</div>
     <div class="seg">${seg('set-dir', 'f', sh.dir, '正向')}${seg('set-dir', 'r', sh.dir, '反向')}${seg('set-dir', 'x', sh.dir, '隨機')}</div>
     ${TTS_OK ? `<div class="sub">朗讀語言（卡片左上角的喇叭）</div><div class="seg">${seg('set-tts', 'auto', sh.tts, '自動')}${seg('set-tts', 'ja-JP', sh.tts, '日文')}${seg('set-tts', 'en-US', sh.tts, '英文')}${seg('set-tts', 'zh-TW', sh.tts, '中文')}</div>` : ''}
     <div class="sub">每輪張數</div>
     <div class="seg">${seg('set-count', 10, sh.count, '10')}${seg('set-count', 20, sh.count, '20')}${seg('set-count', 50, sh.count, '50')}${seg('set-count', 0, sh.count, '不限')}</div>
-    <button class="btn" data-act="start" ${n ? '' : 'disabled'}>${n ? `開始複習（${run} 張）` : '這個範圍沒有卡片'}</button>
+    <button class="btn" data-act="start" ${n ? '' : 'disabled'}>${n ? `開始${sh.mode === 'browse' ? '瀏覽' : '複習'}（${run} 張）` : '這個範圍沒有卡片'}</button>
   </div></div>`;
 }
 
@@ -577,9 +579,23 @@ function speak(txt) {
   const u = new SpeechSynthesisUtterance(s); u.lang = ttsLang(s, S && S.cfg && S.cfg.tts); u.rate = 0.9;
   try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
+function viewBrowse() {
+  const it = S.queue[S.idx], f = it && find(it.did, it.cid);
+  if (!f) { S.idx++; return S.queue[S.idx] ? viewBrowse() : viewDone(); }
+  const c = f.c, fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
+  const last = S.idx >= S.queue.length - 1, pct = Math.round((S.idx + 1) / S.queue.length * 100);
+  const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : '');
+  return `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
+  <div class="fl-wrap"><div class="stage"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
+    <div class="face front" data-act="bflip">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div><div class="hint">點一下翻面，左右滑動切換</div></div>
+    <div class="face back" data-act="bflip">${spk('a')}<div class="qs">${esc(fq)}</div>${S.rev ? '' : rdH}<div class="hair"></div><div class="at">${esc(fa)}</div>${S.rev ? rdH : ''}${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
+  </div></div></div>
+  <div id="ctl"><div class="row"><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bgo" data-d="-1" ${S.idx === 0 ? 'disabled' : ''}>${ic('back')}上一張</button><button class="btn" data-act="bgo" data-d="1">${last ? '完成' : '下一張'}</button></div></div></div>`;
+}
 function viewStudy() {
   const it = S.queue[S.idx];
   if (!it) return viewDone();
+  if (S.cfg.mode === 'browse') return viewBrowse();
   const { c } = find(it.did, it.cid);
   const fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
   const mode = (S.cfg.mode === 'mcq' && S.opts) ? 'mcq' : 'flip';
@@ -613,6 +629,7 @@ function viewStudy() {
   return h;
 }
 function viewDone() {
+  if (S.cfg.mode === 'browse') return `<div class="done"><header class="top"><h1>瀏覽完成</h1></header><button class="btn" data-act="again-round">再看一輪</button><button class="pill" style="width:100%;justify-content:center;margin-top:12px;min-height:50px" data-act="go" data-r="home">回首頁</button></div>`;
   const st = S.stats, total = st.reduce((a, b) => a + b, 0);
   const col = ['var(--bad)', 'var(--warn)', 'var(--good)', 'var(--acc)'];
   return `<div class="done"><header class="top"><h1>這一輪完成</h1></header>
@@ -934,7 +951,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'search') { listQuery = e.target.value; applyListFilter(); }
 });
-function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: store.settings.mode, count: store.settings.count, dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
+function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: store.settings.mode, count: store.settings.count, order: 'seq', dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
 
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
@@ -950,10 +967,11 @@ document.addEventListener('click', e => {
     case 'set-filter': sheet.filter = t.dataset.v; render(); break;
     case 'set-mode': sheet.mode = t.dataset.v; render(); break;
     case 'set-count': sheet.count = +t.dataset.v; render(); break;
+    case 'set-order': sheet.order = t.dataset.v; render(); break;
     case 'set-dir': sheet.dir = t.dataset.v; render(); break;
     case 'set-tts': sheet.tts = t.dataset.v; render(); break;
     case 'speak': { const it = S && S.queue[S.idx], f = it && find(it.did, it.cid); if (f) { const wordSide = (t.dataset.w === 'q') !== S.rev; speak(wordSide ? (f.c.rd || f.c.q) : f.c.a); } break; }
-    case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count, dir: sheet.dir, tts: sheet.tts }); break;
+    case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count, order: sheet.order, dir: sheet.dir, tts: sheet.tts }); break;
     case 'again-round': startSession(S.cfg); break;
     case 'manage': go('deck', t.dataset.id); break;
     case 'flip': {
@@ -963,6 +981,13 @@ document.addEventListener('click', e => {
       if (el && ctl && f) { el.classList.add('is-flipped'); ctl.innerHTML = ratesHTML(f.c); } else render();
       break;
     }
+    case 'bflip': { S.flipped = !S.flipped; const el = document.querySelector('.flip'); if (el) el.classList.toggle('is-flipped', S.flipped); break; }
+    case 'bgo': {
+      const d = +t.dataset.d;
+      if (d > 0 && S.idx >= S.queue.length - 1) { go('home'); toast('瀏覽完成'); break; }
+      S.idx = Math.max(0, Math.min(S.queue.length - 1, S.idx + d)); S.flipped = false; S.rev = S.cfg.dir === 'r';
+      window.scrollTo(0, 0); render(); break;
+    }
     case 'rate': advance(+t.dataset.r); break;
     case 'pick': S.picked = +t.dataset.i; render(); break;
     case 'easy': S.easy = !S.easy; render(); break;
@@ -970,6 +995,7 @@ document.addEventListener('click', e => {
     case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已標記為不熟' : '已取消標記'); } break; }
     case 'known': {
       const it = S.queue[S.idx], f = it && find(it.did, it.cid); if (!f) break;
+      if (S.cfg.mode === 'browse') { f.c.known = !f.c.known; if (f.c.known) f.c.weak = false; save(); render(); toast(f.c.known ? '已標為已熟悉' : '已取消已熟悉'); break; }
       if (f.c.known) { f.c.known = false; save(); render(); toast('已取消已熟悉'); }
       else { f.c.known = true; f.c.weak = false; S.idx++; save(); enter(); window.scrollTo(0, 0); render(); toast('已標為已熟悉，之後不再出現'); }
       break;
@@ -1172,6 +1198,16 @@ function applyTheme() {
   const m = document.querySelector('meta[name=theme-color]');
   if (m) { try { m.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || m.content; } catch (e) {} }
 }
+let tx = null, ty = null;
+document.addEventListener('touchstart', e => { const q = e.touches[0]; tx = q.clientX; ty = q.clientY; }, { passive: true });
+document.addEventListener('touchend', e => {
+  if (tx === null || !S || route.name !== 'study' || S.cfg.mode !== 'browse' || sheet || modal || dlg) { tx = null; return; }
+  const q = e.changedTouches[0], dx = q.clientX - tx, dy = q.clientY - ty; tx = null;
+  if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+    if (dx < 0 && S.idx >= S.queue.length - 1) return;
+    const b = document.querySelector('[data-act=bgo][data-d="' + (dx < 0 ? 1 : -1) + '"]'); if (b && !b.disabled) b.click();
+  }
+}, { passive: true });
 load();
 applyTheme();
 render();
