@@ -150,7 +150,8 @@ label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
 /* sheet & modal */
 .overlay{position:fixed;inset:0;background:var(--shade);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;z-index:10;animation:fade .2s ease-out}
 .sheet{width:100%;max-width:680px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:12px 18px calc(24px + env(safe-area-inset-bottom));animation:rise .28s cubic-bezier(.2,.8,.25,1)}
-.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px;position:relative;touch-action:none;cursor:grab}
+.grab::before{content:'';position:absolute;left:-60px;right:-60px;top:-14px;bottom:-18px}
 .sheet h2.t{font:600 22px/1.4 var(--serif);margin:0 0 4px;letter-spacing:.03em}
 .opts{background:var(--card);border-radius:18px;box-shadow:var(--sh);overflow:hidden;margin:6px 0 18px}
 .rowopt{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:0 16px;text-align:left}
@@ -967,7 +968,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'search') { listQuery = e.target.value; applyListFilter(); }
 });
-function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: store.settings.mode, count: store.settings.count, order: 'seq', dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
+function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: 'browse', count: store.settings.count, order: 'seq', dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
 
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
@@ -1223,6 +1224,35 @@ document.addEventListener('touchend', e => {
     const b = document.querySelector('[data-act=bgo][data-d="' + (dx < 0 ? 1 : -1) + '"]'); if (b && !b.disabled) b.click();
   }
 }, { passive: true });
+
+(function(){
+  let g = null;
+  document.addEventListener('touchstart', e => {
+    const h = e.target.closest && e.target.closest('.grab'); if (!h) return;
+    const sh = h.closest('.sheet'), ov = h.closest('.overlay'); if (!sh || !ov) return;
+    g = { y: e.touches[0].clientY, sh, ov, dy: 0, t: Date.now() };
+    sh.style.animation = 'none'; sh.style.transition = 'none';
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!g) return;
+    g.dy = Math.max(0, e.touches[0].clientY - g.y);
+    g.sh.style.transform = 'translateY(' + g.dy + 'px)';
+    g.ov.style.opacity = String(Math.max(.3, 1 - g.dy / 500));
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+  const end = () => {
+    if (!g) return; const x = g; g = null;
+    const fast = x.dy / Math.max(1, Date.now() - x.t) > 0.5;
+    if (x.dy > 110 || (fast && x.dy > 40)) {
+      x.sh.style.transition = 'transform .18s ease-in'; x.sh.style.transform = 'translateY(110%)';
+      setTimeout(() => { x.ov.click(); }, 170);
+    } else {
+      x.sh.style.transition = 'transform .2s ease-out'; x.sh.style.transform = 'none'; x.ov.style.opacity = '';
+    }
+  };
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+})();
 load();
 applyTheme();
 render();
