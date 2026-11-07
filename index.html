@@ -588,6 +588,19 @@ function speak(txt, field, dk) {
   const u = new SpeechSynthesisUtterance(s); u.lang = ttsLang(s, S && S.cfg && S.cfg.tts, info && info.side === field ? info.lang : null); u.rate = 0.9;
   try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
+function viewBrowse() {
+  const it = S.queue[S.idx], f = it && find(it.did, it.cid);
+  if (!f) { S.idx++; return S.queue[S.idx] ? viewBrowse() : viewDone(); }
+  const c = f.c, fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
+  const last = S.idx >= S.queue.length - 1, pct = Math.round((S.idx + 1) / S.queue.length * 100);
+  const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : '');
+  return `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
+  <div class="fl-wrap"><div class="stage"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
+    <div class="face front" data-act="bflip">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div><div class="hint">點一下翻面，左右滑動切換</div></div>
+    <div class="face back" data-act="bflip">${spk('a')}<div class="qs">${esc(fq)}</div>${S.rev ? '' : rdH}<div class="hair"></div><div class="at">${esc(fa)}</div>${S.rev ? rdH : ''}${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
+  </div></div></div>
+  <div id="ctl"><div class="row"><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bgo" data-d="-1" ${S.idx === 0 ? 'disabled' : ''}>${ic('back')}上一張</button><button class="btn" data-act="bgo" data-d="1">${last ? '完成' : '下一張'}</button></div></div></div>`;
+}
 function viewStudy() {
   const it = S.queue[S.idx];
   if (!it) return viewDone();
