@@ -781,7 +781,7 @@ async function getToken(interactive) {
   if (!gTC) gTC = google.accounts.oauth2.initTokenClient({ client_id: G_CLIENT, scope: G_SCOPE, callback: r => gOk && gOk(r), error_callback: e => gErr && gErr(e) });
   return new Promise((res, rej) => {
     gOk = r => { if (r.error) return rej(new Error(r.error_description || r.error)); gTok = r.access_token; gExp = Date.now() + (r.expires_in || 3600) * 1000; res(gTok); };
-    gErr = e => rej(new Error(e && e.type === 'popup_failed_to_open' ? '彈出窗口被攔截，請點“立即同步”' : e && e.type === 'popup_closed' ? '已取消登入' : '登入失敗'));
+    gErr = e => rej(new Error(e && e.type === 'popup_failed_to_open' ? '彈出視窗被攔截，請點“立即同步”' : e && e.type === 'popup_closed' ? '登入視窗被關閉了。若視窗裡出現錯誤畫面，請截圖確認原因' : '登入失敗'));
     gTC.requestAccessToken({ prompt: store.settings.sync && store.settings.sync.on ? '' : 'consent' });
   });
 }
@@ -828,7 +828,7 @@ function syncCardHTML() {
   let h = '<h2>雲端同步（Google）</h2><div class="card" style="margin-top:0">';
   if (!G_OK) h += '<p class="sub" style="margin:0">只有放在網址上的版本才能同步（直接打開本機檔案不行）。</p>';
   else if (sy.on) h += `<div class="ok-t" style="font-weight:600">已開啟同步</div><p class="sub" style="margin:6px 0 12px">上次同步：${sy.last ? new Date(sy.last).toLocaleString() : '尚未'}。資料存在你自己的 Google 雲端硬碟裡（App 專用的隱藏檔案夾）。</p><div class="row"><button class="btn" data-act="sync-now">立即同步</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="sync-off">關閉</button></div>`;
-  else h += '<p class="sub" style="margin:0 0 12px">登入後，資料會同步到你自己的 Google 雲端硬碟（App 專用的隱藏檔案夾），換手機或清除瀏覽器資料後也能取回。沒有登入也能正常使用。</p><button class="btn" data-act="sync-now">登入 Google 并同步</button>';
+  else h += '<p class="sub" style="margin:0 0 12px">登入後，資料會同步到你自己的 Google 雲端硬碟（App 專用的隱藏檔案夾），換手機或清除瀏覽器資料後也能取回。沒有登入也能正常使用。</p><button class="btn" data-act="sync-now">登入 Google 並同步</button>';
   return h + `<div id="sync-msg" class="msg">${esc(syncMsg)}</div></div>`;
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && gTok && Date.now() < gExp - 60000 && store.settings.sync && store.settings.sync.on && !syncing && route.name !== 'study') { lastTry = 0; syncNow(false); } });
