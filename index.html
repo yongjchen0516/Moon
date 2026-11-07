@@ -16,6 +16,7 @@
 
 
 
+
 <style>
 :root{
   --bg:#E8EBE9;--card:#F8F8F5;--ink:#1F2733;--sub:#5A6472;--line:#D5DAD8;
@@ -780,9 +781,13 @@ function viewDeck() {
 function grpSheetHTML() {
   const g = grpSheet.g, n = store.decks.filter(d => d.group === g).length;
   const opt = (act, label, extra) => `<button class="rowopt${extra && extra.danger ? ' danger' : ''}" data-act="${act}" data-g="${esc(g)}"><span class="t">${label}</span></button>`;
-  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 個牌組</div><div class="opts">${opt('grp-study', '複習整個群組')}${opt('new-deck', '在此群組新增牌組')}${n > 1 ? opt('grp-order', '調整牌組順序') : ''}${opt('grp-rename', '重新命名群組')}${opt('grp-del', '刪除群組（牌組會保留）', { danger: true })}</div></div></div>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 個牌組</div><div class="opts">${opt('grp-study', '複習整個群組')}${opt('new-deck', '在此群組新增牌組')}${n > 1 ? opt('grp-order', '調整牌組順序') : ''}${store.groups.length > 1 ? opt('grp-order-all', '調整群組順序') : ''}${opt('grp-rename', '重新命名群組')}${opt('grp-del', '刪除群組（牌組會保留）', { danger: true })}</div></div></div>`;
 }
 function ordHTML() {
+  if (ordSheet.all) {
+    const rows = store.groups.map(g => `<div class="rowopt ordrow" data-id="${esc(g)}"><span class="t">${esc(g)}</span><span class="ord-h" aria-label="按住拖動排序">≡</span></div>`).join('');
+    return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">調整群組順序</h2><div class="sub" style="margin:6px 0 12px">按住右側 ≡ 上下拖動，按“完成”才會儲存</div><div class="opts" id="ordlist">${rows}</div><div class="row" style="margin-top:16px"><button class="btn" data-act="ord-done">完成</button></div></div></div>`;
+  }
   const g = ordSheet.g, list = store.decks.filter(d => d.group === g);
   const rows = list.map(d => `<div class="rowopt ordrow" data-id="${d.id}"><span class="t">${esc(d.name)}</span><span class="ord-h" aria-label="按住拖動排序">≡</span></div>`).join('');
   return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">調整牌組順序</h2><div class="sub" style="margin:6px 0 12px">${esc(g)} · 按住右側 ≡ 上下拖動，按“完成”才會儲存</div><div class="opts" id="ordlist">${rows}</div><div class="row" style="margin-top:16px"><button class="btn" data-act="ord-done">完成</button></div></div></div>`;
@@ -908,7 +913,7 @@ function mergeRemote(r) {
   const decks = [...out.values()].map(d => { const x = { id: d.id, name: d.name, cards: d.cards, upd: d.upd }; if (d.group) x.group = d.group; if (d.type) x.type = d.type; return x; });
   const order = []; lo.concat(ro).forEach(d => { if (out.has(d.id) && !order.includes(d.id)) order.push(d.id); });
   decks.sort((a, b) => (order.indexOf(a.id) < 0 ? 999 : order.indexOf(a.id)) - (order.indexOf(b.id) < 0 ? 999 : order.indexOf(b.id)));
-  store.decks = decks; store.tomb = T; syncGroups(); seedHashes();
+  store.decks = decks; store.tomb = T; store.groups = [...store.groups, ...(Array.isArray(r.groups) ? r.groups.filter(g => typeof g === 'string' && g) : [])]; syncGroups(); seedHashes();
 }
 function loadGIS() {
   return new Promise((res, rej) => {
@@ -1181,7 +1186,13 @@ document.addEventListener('click', e => {
     case 'grp-toggle': { const g = t.dataset.g; store.collapsed[g] = !store.collapsed[g]; save(); render(); break; }
     case 'grp-manage': grpSheet = { g: t.dataset.g }; render(); break;
     case 'grp-order': ordSheet = { g: t.dataset.g }; grpSheet = null; render(); break;
+    case 'grp-order-all': ordSheet = { all: true }; grpSheet = null; render(); break;
     case 'ord-done': {
+      if (ordSheet.all) {
+        const gs = [...document.querySelectorAll('#ordlist .ordrow')].map(r => r.dataset.id);
+        if (gs.length === store.groups.length && gs.every(x => store.groups.includes(x))) { store.groups = gs; save(); }
+        ordSheet = null; render(); toast('已儲存順序'); break;
+      }
       const g = ordSheet.g, ids = [...document.querySelectorAll('#ordlist .ordrow')].map(r => r.dataset.id);
       const slots = []; store.decks.forEach((d, k) => { if (d.group === g) slots.push(k); });
       if (ids.length === slots.length) { const map = new Map(store.decks.map(d => [d.id, d])); slots.forEach((k, n) => { const d = map.get(ids[n]); if (d) store.decks[k] = d; }); save(); }

@@ -1,5 +1,5 @@
 // Moon offline cache: stale-while-revalidate. Bump VERSION to force a refresh.
-const VERSION = 'moon-v22';
+const VERSION = 'moon-v23';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/rila-192.png', 'icons/rila-512.png', 'icons/rila-180.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
