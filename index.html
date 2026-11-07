@@ -366,7 +366,7 @@ function find(did, cid) { const d = deck(did); if (!d) return null; const c = d.
 const isDue = c => !c.seen || c.due <= Date.now();
 function status(c) { if (!c.seen) return 'new'; if (c.interval >= 21) return 'mastered'; return 'learning'; }
 function poolFor(scope) { const out = []; if (isC(scope)) { const ids = new Set(scope.slice(2).split(',')); for (const d of store.decks) for (const c of d.cards) if (ids.has(c.id)) out.push({ d, c }); return out; } for (const d of store.decks) if (scope === 'all' || d.id === scope || (isG(scope) && d.group === scope.slice(2)) || (isM(scope) && scope.slice(2).split(',').includes(d.id))) for (const c of d.cards) out.push({ d, c }); return out; }
-function match(c, f) { if (f === 'known') return !!c.known; if (c.known) return false; if (f === 'due') return isDue(c); if (f === 'weak') return c.weak; if (f === 'wrong') return c.inWrong; return true; }
+function match(c, f) { if (f === 'all') return true; if (f === 'known') return !!c.known; if (c.known) return false; if (f === 'due') return isDue(c); if (f === 'weak') return c.weak; if (f === 'wrong') return c.inWrong; return true; }
 function counts(scope) { const p = poolFor(scope), a = p.filter(x => !x.c.known); return { total: p.length, known: p.length - a.length, due: a.filter(x => isDue(x.c)).length, fresh: a.filter(x => !x.c.seen).length, weak: a.filter(x => x.c.weak).length, wrong: a.filter(x => x.c.inWrong).length, mastered: p.filter(x => x.c.known || status(x.c) === 'mastered').length, learning: a.filter(x => status(x.c) === 'learning').length }; }
 
 function normCard(c) {
@@ -447,7 +447,7 @@ function startSession(cfg) {
   go('study');
 }
 function enter() {
-  while (S.queue[S.idx]) { const f0 = find(S.queue[S.idx].did, S.queue[S.idx].cid); if (f0 && (S.cfg.filter === 'known' || !f0.c.known)) break; S.idx++; }
+  while (S.queue[S.idx]) { const f0 = find(S.queue[S.idx].did, S.queue[S.idx].cid); if (f0 && (S.cfg.filter === 'known' || S.cfg.filter === 'all' || !f0.c.known)) break; S.idx++; }
   S.flipped = false; S.picked = null; S.opts = null; S.easy = false; S.anim = true;
   S.rev = S.cfg.dir === 'r' || (S.cfg.dir === 'x' && S.cfg.mode !== 'browse' && Math.random() < 0.5);
   const it = S.queue[S.idx];
@@ -502,7 +502,7 @@ function statsHTML(c, withTotal) {
   let h = '';
   if (withTotal) h += `<span><b>${c.total}</b> 張</span>`;
   h += `<span><b>${c.due}</b> 待複習</span>`;
-  if (c.weak) h += `<span><b>${c.weak}</b> 不熟</span>`;
+  if (c.weak) h += `<span><b>${c.weak}</b> 不熟悉</span>`;
   if (c.wrong) h += `<span><b>${c.wrong}</b> 錯題</span>`;
   if (c.known) h += `<span><b>${c.known}</b> 已熟悉</span>`;
   return `<div class="stats">${h}</div>`;
@@ -521,12 +521,12 @@ function viewHome() {
   if (all.due > 0) {
     let sp = '';
     if (all.fresh) sp += `<span><b>${all.fresh}</b> 新卡</span>`;
-    if (all.weak) sp += `<span><b>${all.weak}</b> 不熟</span>`;
+    if (all.weak) sp += `<span><b>${all.weak}</b> 不熟悉</span>`;
     if (all.wrong) sp += `<span><b>${all.wrong}</b> 錯題</span>`;
     h += `<div class="hero-row"><span class="n">${all.due}</span><span class="cap">張今天要複習</span></div><div class="stats">${sp || '&nbsp;'}</div>`;
     h += `<div class="go"><button class="btn" data-act="quick">開始複習（${run} 張）</button><button class="more" data-act="adjust">調整</button></div>`;
   } else {
-    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，可以挑不熟或錯題再來一輪</span></div><div class="go"><button class="btn" data-act="adjust">自選範圍複習</button></div>`;
+    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，可以挑不熟悉或錯題再來一輪</span></div><div class="go"><button class="btn" data-act="adjust">自選範圍複習</button></div>`;
   }
   h += `</section>`;
   h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">全部混合</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
@@ -558,7 +558,7 @@ function sheetHTML() {
   return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div>
     <h2 class="t">${esc(name)}</h2>
     <div class="sub" style="margin:8px 0 0">範圍</div>
-    <div class="opts">${frow('due', '待複習與新卡')}${frow('weak', '不熟')}${frow('wrong', '錯題本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
+    <div class="opts">${frow('due', '待複習與新卡')}${frow('weak', '不熟悉')}${frow('wrong', '錯題本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
     <div class="sub">方式</div>
     <div class="seg">${seg('set-mode', 'browse', sh.mode, '瀏覽')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}${seg('set-mode', 'flip', sh.mode, '翻卡')}</div>
     ${sh.mode === 'browse' ? `<div class="sub">順序（瀏覽不影響學習進度）</div><div class="seg">${seg('set-order', 'seq', sh.order, '依序')}${seg('set-order', 'rand', sh.order, '隨機')}</div>` : ''}
@@ -615,7 +615,7 @@ function viewBrowse() {
   const c = f.c, fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
   const last = S.idx >= S.queue.length - 1, pct = Math.round((S.idx + 1) / S.queue.length * 100);
   const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : '');
-  return `<header class="top study"><button class="pill" data-act="${S.from ? 'view-back' : 'go'}" data-r="home">${ic('back')}${S.from ? '返回' : '結束'}</button><button class="pill cnt" data-act="jump-open" aria-label="跳到指定卡片">${S.idx + 1}<span> / ${S.queue.length} ▾</span></button><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
+  return `<header class="top study"><button class="pill" data-act="${S.from ? 'view-back' : 'go'}" data-r="home">${ic('back')}${S.from ? '返回' : '結束'}</button><button class="pill cnt" data-act="jump-open" aria-label="跳到指定卡片">${S.idx + 1}<span> / ${S.queue.length} ▾</span></button><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟悉</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
   <div class="fl-wrap"><div class="stage"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
     <div class="face front" data-act="bflip">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div><div class="hint">點一下翻面，左右滑動切換</div></div>
     <div class="face back" data-act="bflip">${spk('a')}<div class="qs">${esc(fq)}</div>${S.rev ? '' : rdH}<div class="hair"></div><div class="at">${esc(fa)}</div>${S.rev ? rdH : ''}${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
@@ -631,7 +631,7 @@ function viewStudy() {
   const mode = (S.cfg.mode === 'mcq' && S.opts) ? 'mcq' : 'flip';
   const pct = Math.round(S.idx / S.queue.length * 100);
   const enterCls = S.anim ? ' enter' : ''; S.anim = false;
-  let h = `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>`;
+  let h = `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟悉</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>`;
   const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.seen ? '' : '<span class="badge">新卡</span>');
   if (mode === 'mcq') {
     h += `<div class="stage${enterCls}"><div class="face solo">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div></div>`;
@@ -672,7 +672,7 @@ function viewDone() {
 
 function badgesHTML(c) {
   const st = status(c);
-  return (c.weak ? '<span class="badge w">不熟</span>' : '') + (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : `<span class="badge">${st === 'new' ? '新卡' : st === 'mastered' ? '熟練' : '學習中'}</span>`);
+  return (c.weak ? '<span class="badge w">不熟悉</span>' : '') + (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : `<span class="badge">${st === 'new' ? '新卡' : st === 'mastered' ? '熟練' : '學習中'}</span>`);
 }
 function cardTags(c) {
   if (c.known) return 'known';
@@ -706,7 +706,7 @@ function viewDeck() {
   h += `<h1 style="margin:0 0 ${isAll ? 4 : 14}px;overflow:hidden;text-overflow:ellipsis">${esc(title)}</h1>`;
   if (isAll) h += `<p class="sub" style="margin:0 0 12px">共 ${list.length} 張，來自 ${store.decks.length} 個牌組</p>`;
   h += `<input type="text" id="search" placeholder="搜尋問題或答案" value="${esc(listQuery)}" aria-label="搜尋">`;
-  const F = [['all', '全部'], ['due', '待複習'], ['weak', '不熟'], ['wrong', '錯題'], ['new', '新卡'], ['known', '已熟悉']];
+  const F = [['all', '全部'], ['due', '待複習'], ['weak', '不熟悉'], ['wrong', '錯題'], ['new', '新卡'], ['known', '已熟悉']];
   const cnt = k => k === 'all' ? list.length : list.filter(x => (' ' + cardTags(x.c) + ' ').includes(' ' + k + ' ')).length;
   h += `<div class="fchips">${F.map(([k, t]) => `<button class="chip${listFilter === k ? ' on' : ''}" data-act="lf" data-v="${k}" data-count="${cnt(k)}">${t} ${cnt(k)}</button>`).join('')}</div>`;
   h += (sel ? '' : `<p class="sub" style="margin:0 0 4px">點一下检视卡片 · 长按多選</p>`) + `<div class="list" id="list">`;
@@ -1032,7 +1032,7 @@ document.addEventListener('click', e => {
     case 'pick': S.picked = +t.dataset.i; render(); break;
     case 'easy': S.easy = !S.easy; render(); break;
     case 'next': { const it = S.queue[S.idx], f = find(it.did, it.cid); const ok = S.opts[S.picked] === (S.rev ? f.c.q : f.c.a); advance(ok ? (S.easy ? 3 : 2) : 0); break; }
-    case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已標記為不熟' : '已取消標記'); } break; }
+    case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已標記為不熟悉' : '已取消標記'); } break; }
     case 'known': {
       const it = S.queue[S.idx], f = it && find(it.did, it.cid); if (!f) break;
       if (S.cfg.mode === 'browse') { f.c.known = !f.c.known; if (f.c.known) f.c.weak = false; save(); render(); toast(f.c.known ? '已標為已熟悉' : '已取消已熟悉'); break; }
