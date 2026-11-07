@@ -274,7 +274,7 @@ const PROMPT = `请根据我附上的笔记照片，产生复习用题目卡片�
 - 照片看不清楚的地方不要猜，请跳过
 - 不要编造照片中没有的内容`;
 
-let store = { decks: [], groups: [], collapsed: {}, settings: { filter: 'due', mode: 'flip', count: 20, theme: 'indigo' } };
+let store = { decks: [], groups: [], collapsed: {}, tomb: {}, settings: { filter: 'due', mode: 'flip', count: 20, theme: 'indigo' } };
 let storageOK = true;
 let route = { name: 'home' };
 let sheet = null;   // {scope, filter, mode, count}
@@ -321,11 +321,12 @@ function load() {
   try {
     localStorage.setItem(KEY + '_t', '1'); localStorage.removeItem(KEY + '_t');
     const s = localStorage.getItem(KEY);
-    if (s) { const o = JSON.parse(s); if (o && Array.isArray(o.decks)) { store.decks = o.decks; store.groups = Array.isArray(o.groups) ? o.groups.filter(g => typeof g === 'string' && g) : []; store.collapsed = (o.collapsed && typeof o.collapsed === 'object') ? o.collapsed : {}; store.settings = Object.assign(store.settings, o.settings || {}); } }
+    if (s) { const o = JSON.parse(s); if (o && Array.isArray(o.decks)) { store.decks = o.decks; store.groups = Array.isArray(o.groups) ? o.groups.filter(g => typeof g === 'string' && g) : []; store.collapsed = (o.collapsed && typeof o.collapsed === 'object') ? o.collapsed : {}; store.tomb = (o.tomb && typeof o.tomb === 'object') ? o.tomb : {}; store.settings = Object.assign(store.settings, o.settings || {}); } }
   } catch (e) { storageOK = false; }
-  syncGroups();
+  syncGroups(); seedHashes();
 }
 function save() {
+  stamp();
   if (!storageOK) return;
   try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { storageOK = false; render(); }
 }
@@ -714,11 +715,129 @@ function viewImport() {
   <button class="pill" style="width:100%;justify-content:center;min-height:50px" data-act="sample">加载示例牌组试用</button>`;
 }
 
+/* ---------- Google Drive sync (appDataFolder) ---------- */
+const G_CLIENT = '20758854855-2l15lv4mdo4l8uf2s95ckgvdilskmikv.apps.googleusercontent.com';
+const G_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const G_FILE = 'moon-data.json';
+const G_OK = /^https?:$/.test(location.protocol);
+let gTok = null, gExp = 0, gTC = null, gOk = null, gErr = null, syncing = false, syncMsg = '', lastTry = 0, hmap = new Map(), known = new Set();
+function seedHashes() {
+  hmap = new Map(); known = new Set();
+  for (const d of store.decks) {
+    known.add(d.id); hmap.set(d.id, JSON.stringify([d.name, d.group || '']));
+    for (const c of d.cards) { known.add(c.id); const { upd, ...r } = c; hmap.set(c.id, JSON.stringify(r)); }
+  }
+}
+function stamp() {            // mark changed items with a timestamp, remember deletions
+  const now = Date.now(), cur = new Set();
+  for (const d of store.decks) {
+    cur.add(d.id); const dh = JSON.stringify([d.name, d.group || '']);
+    if (hmap.get(d.id) !== dh) { d.upd = now; hmap.set(d.id, dh); }
+    for (const c of d.cards) {
+      cur.add(c.id); const { upd, ...r } = c, h = JSON.stringify(r);
+      if (hmap.get(c.id) !== h) { c.upd = now; hmap.set(c.id, h); }
+    }
+  }
+  for (const id of known) if (!cur.has(id)) { store.tomb[id] = now; hmap.delete(id); }
+  for (const id of cur) if (store.tomb[id] && (store.tomb[id] < now - 1)) { /* keep: resolved at merge */ }
+  known = cur;
+}
+function mergeRemote(r) {
+  const T = Object.assign({}, r.tomb || {});
+  for (const [k, v] of Object.entries(store.tomb)) T[k] = Math.max(T[k] || 0, v);
+  const dk = new Map(), cd = new Map();
+  const putD = d => { const o = dk.get(d.id); if (!o || (d.upd || 0) > (o.upd || 0)) dk.set(d.id, { id: d.id, name: d.name, group: d.group || '', upd: d.upd || 0 }); };
+  const putC = (c, did) => { const o = cd.get(c.id); if (!o || (c.upd || 0) > (o.c.upd || 0)) cd.set(c.id, { c, did }); };
+  const lo = store.decks, ro = (r.decks || []).filter(d => d && d.id && Array.isArray(d.cards));
+  lo.forEach(d => { putD(d); d.cards.forEach(c => putC(c, d.id)); });
+  ro.forEach(d => { putD(d); d.cards.forEach(c => c && c.id && putC(c, d.id)); });
+  for (const [id, d] of [...dk]) if (T[id] && T[id] >= d.upd) dk.delete(id); else delete T[id];
+  for (const [id, o] of [...cd]) if (T[id] && T[id] >= (o.c.upd || 0)) cd.delete(id); else delete T[id];
+  const out = new Map([...dk.values()].map(d => [d.id, Object.assign({ cards: [] }, d)]));
+  const placed = new Set();
+  const addFrom = d => (d.cards || []).forEach(c => {
+    if (!c || placed.has(c.id) || !cd.has(c.id)) return;
+    const o = cd.get(c.id); let tg = out.get(o.did);
+    if (!tg) { tg = out.get('uncat') || out.set('uncat', { id: 'uncat', name: '未分类', group: '', upd: Date.now(), cards: [] }).get('uncat'); }
+    tg.cards.push(o.c); placed.add(c.id);
+  });
+  lo.forEach(addFrom); ro.forEach(addFrom);
+  const cut = Date.now() - 90 * 864e5; for (const k of Object.keys(T)) if (T[k] < cut) delete T[k];
+  const decks = [...out.values()].map(d => { const x = { id: d.id, name: d.name, cards: d.cards, upd: d.upd }; if (d.group) x.group = d.group; return x; });
+  const order = []; lo.concat(ro).forEach(d => { if (out.has(d.id) && !order.includes(d.id)) order.push(d.id); });
+  decks.sort((a, b) => (order.indexOf(a.id) < 0 ? 999 : order.indexOf(a.id)) - (order.indexOf(b.id) < 0 ? 999 : order.indexOf(b.id)));
+  store.decks = decks; store.tomb = T; syncGroups(); seedHashes();
+}
+function loadGIS() {
+  return new Promise((res, rej) => {
+    if (window.google && google.accounts && google.accounts.oauth2) return res();
+    const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+    s.onload = res; s.onerror = () => rej(new Error('无法连接 Google（可能没有网络）')); document.head.appendChild(s);
+  });
+}
+async function getToken(interactive) {
+  if (gTok && Date.now() < gExp - 60000) return gTok;
+  await loadGIS();
+  if (!gTC) gTC = google.accounts.oauth2.initTokenClient({ client_id: G_CLIENT, scope: G_SCOPE, callback: r => gOk && gOk(r), error_callback: e => gErr && gErr(e) });
+  return new Promise((res, rej) => {
+    gOk = r => { if (r.error) return rej(new Error(r.error_description || r.error)); gTok = r.access_token; gExp = Date.now() + (r.expires_in || 3600) * 1000; res(gTok); };
+    gErr = e => rej(new Error(e && e.type === 'popup_failed_to_open' ? '弹出窗口被拦截，请点“立即同步”' : e && e.type === 'popup_closed' ? '已取消登录' : '登录失败'));
+    gTC.requestAccessToken({ prompt: store.settings.sync && store.settings.sync.on ? '' : 'consent' });
+  });
+}
+async function gfetch(url, opt) {
+  const r = await fetch(url, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + gTok }, (opt && opt.headers) || {}) }));
+  if (r.status === 401) gTok = null;
+  if (!r.ok) throw new Error('Google 回应错误（' + r.status + '）');
+  return r;
+}
+function setSyncMsg(m) { syncMsg = m; const el = document.getElementById('sync-msg'); if (el) el.textContent = m; }
+async function syncNow(manual) {
+  if (!G_OK || syncing) return;
+  syncing = true; lastTry = Date.now(); if (manual) setSyncMsg('同步中…');
+  try {
+    await getToken(manual);
+    const q = encodeURIComponent("name='" + G_FILE + "'");
+    const list = await (await gfetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id)&q=' + q)).json();
+    const fid = list.files && list.files[0] && list.files[0].id;
+    if (fid) { const remote = await (await gfetch('https://www.googleapis.com/drive/v3/files/' + fid + '?alt=media')).json(); if (remote && Array.isArray(remote.decks)) mergeRemote(remote); }
+    const body = JSON.stringify({ v: 1, t: Date.now(), decks: store.decks, groups: store.groups, tomb: store.tomb });
+    if (fid) await gfetch('https://www.googleapis.com/upload/drive/v3/files/' + fid + '?uploadType=media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+    else {
+      const b = 'moonbnd' + Date.now();
+      await gfetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b },
+        body: '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: G_FILE, parents: ['appDataFolder'] }) + '\r\n--' + b + '\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--' + b + '--' });
+    }
+    store.settings.sync = { on: true, last: Date.now() }; save();
+    setSyncMsg('已同步 ' + new Date().toLocaleTimeString().slice(0, 5));
+    if (route.name !== 'study') render();
+    if (manual) toast('已同步');
+  } catch (e) {
+    setSyncMsg('同步失败：' + (e && e.message ? e.message : '未知错误'));
+    if (manual) toast('同步失败');
+  } finally { syncing = false; }
+}
+function autoSync() {          // called from user taps / when hiding the page
+  const sy = store.settings.sync;
+  if (!G_OK || !sy || !sy.on || syncing || route.name === 'study') return;
+  if (Date.now() - lastTry < 10 * 60 * 1000) return;
+  syncNow(false);
+}
+function syncCardHTML() {
+  const sy = store.settings.sync || { on: false, last: 0 };
+  let h = '<h2>云端同步（Google）</h2><div class="card" style="margin-top:0">';
+  if (!G_OK) h += '<p class="sub" style="margin:0">只有放在网址上的版本才能同步（直接打开本机文件不行）。</p>';
+  else if (sy.on) h += `<div class="ok-t" style="font-weight:600">已开启同步</div><p class="sub" style="margin:6px 0 12px">上次同步：${sy.last ? new Date(sy.last).toLocaleString() : '尚未'}。数据存在你自己的 Google 云端硬盘里（App 专用的隐藏文件夹）。</p><div class="row"><button class="btn" data-act="sync-now">立即同步</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="sync-off">关闭</button></div>`;
+  else h += '<p class="sub" style="margin:0 0 12px">登录后，数据会同步到你自己的 Google 云端硬盘（App 专用的隐藏文件夹），换手机或清除浏览器数据后也能取回。没有登录也能正常使用。</p><button class="btn" data-act="sync-now">登录 Google 并同步</button>';
+  return h + `<div id="sync-msg" class="msg">${esc(syncMsg)}</div></div>`;
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && gTok && Date.now() < gExp - 60000 && store.settings.sync && store.settings.sync.on && !syncing && route.name !== 'study') { lastTry = 0; syncNow(false); } });
 function viewBackup() {
   return `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button></header>
   <h1 style="margin-bottom:6px">备份与还原</h1>
   <div class="card"><div class="${storageOK ? 'ok-t' : 'bad-t'}" style="font-weight:600">${storageOK ? '进度会自动存在这个浏览器' : '这个浏览器无法保存进度'}</div>
   <p class="sub" style="margin:6px 0 0">清除浏览器数据、换手机或换浏览器都会让进度消失。偶尔备份一次比较安心。</p></div>
+  ${syncCardHTML()}
   <h2>备份</h2>
   <div class="row"><button class="btn" data-act="export-file">保存为文件</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="export-copy">复制文字</button></div>
   <h2>还原（会替换目前全部数据）</h2>
@@ -781,6 +900,7 @@ function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode
 
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
+  if (t.dataset.act !== 'sync-now') autoSync();
   const act = t.dataset.act;
   if (act === 'close' && dlg) { if (e.target === t) { dlg = null; render(); } return; }
   if (act === 'close') { if (e.target === t || t.tagName === 'BUTTON') { sheet = null; modal = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; render(); } return; }
@@ -879,6 +999,8 @@ document.addEventListener('click', e => {
     }
     case 'pick-all': { if (pick.size === store.decks.length) pick.clear(); else store.decks.forEach(d => pick.add(d.id)); render(); break; }
     case 'pick-go': { if (!pick.size) return; const sc = 'm:' + [...pick].join(','); pick = null; openSheet(sc); break; }
+    case 'sync-now': syncNow(true); break;
+    case 'sync-off': store.settings.sync = { on: false, last: 0 }; save(); try { if (gTok && window.google) google.accounts.oauth2.revoke(gTok, () => {}); } catch (e) {} gTok = null; setSyncMsg(''); render(); toast('已关闭同步（云端备份仍保留）'); break;
     case 'new-group': {
       askText('新增群组（例如：英语）', '', nm => {
         nm = (nm || '').trim(); if (!nm) return;
@@ -995,7 +1117,7 @@ document.addEventListener('click', e => {
       }, true);
       break;
     }
-    case 'clear-all': askConfirm('清除全部数据', '清除全部牌组与进度？此操作无法恢复。', '继续', () => askConfirm('再确认一次', '真的要清除吗？建议先备份。', '全部清除', () => { store.decks = []; store.groups = []; store.collapsed = {}; save(); go('home'); }, true), true); break;
+    case 'clear-all': askConfirm('清除全部数据', '清除全部牌组与进度？此操作无法恢复。' + (store.settings.sync && store.settings.sync.on ? '已开启同步：云端的数据下次同步时也会被清除。' : ''), '继续', () => askConfirm('再确认一次', '真的要清除吗？建议先备份。', '全部清除', () => { store.decks = []; store.groups = []; store.collapsed = {}; save(); go('home'); }, true), true); break;
   }
 });
 
