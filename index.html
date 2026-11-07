@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 
+
 <style>
 :root{
   --bg:#E8EBE9;--card:#F8F8F5;--ink:#1F2733;--sub:#5A6472;--line:#D5DAD8;
@@ -918,6 +919,7 @@ function loadGIS() {
 }
 async function getToken(interactive) {
   if (gTok && Date.now() < gExp - 60000) return gTok;
+  if (!interactive) throw new Error('登入已過期，需要時請點“立即同步”');   // 自動同步绝不彈登入窗
   await loadGIS();
   if (!gTC) gTC = google.accounts.oauth2.initTokenClient({ client_id: G_CLIENT, scope: G_SCOPE, callback: r => gOk && gOk(r), error_callback: e => gErr && gErr(e) });
   return new Promise((res, rej) => {
