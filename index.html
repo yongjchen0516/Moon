@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hans" data-theme="rila">
+<html lang="zh-Hant" data-theme="rila">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -24,7 +24,7 @@
   --sh:0 1px 2px rgba(31,39,51,.05),0 16px 32px -20px rgba(31,39,80,.38);
   --sh-s:0 1px 2px rgba(31,39,51,.08);
   --shade:rgba(20,24,40,.38);
-  --serif:"Noto Serif SC","Source Han Serif SC","Noto Serif CJK SC","Songti SC","SimSun",ui-serif,Georgia,serif;
+  --serif:"Noto Serif TC","Source Han Serif TC","Noto Serif CJK TC","Songti TC","PMingLiU","Noto Serif SC","Source Han Serif SC","Noto Serif CJK SC","Songti SC","SimSun",ui-serif,Georgia,serif;
   --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root{
@@ -264,15 +264,15 @@ pre{white-space:pre-wrap;word-break:break-all;background:var(--bg);border-radius
 <script>
 "use strict";
 const KEY = 'review-cards-v1';
-const RATE_LABELS = ['不会', '模糊', '记得', '很熟'];
-const PROMPT = `请根据我附上的笔记照片，产生复习用题目卡片。
-只输出一个 JSON 代码块，不要有其他说明文字，格式如下：
-{"decks":[{"name":"牌组名称","cards":[{"q":"问题","a":"简短答案","wrong":["干扰1","干扰2","干扰3"],"note":"补充说明"}]}]}
-规则：
-- 每张卡只问一个概念，答案尽量简短（一句话以内）
-- wrong 的干扰选项要和正确答案同类型、看起来合理但明确错误
-- 照片看不清楚的地方不要猜，请跳过
-- 不要编造照片中没有的内容`;
+const RATE_LABELS = ['不會', '模糊', '記得', '很熟'];
+const PROMPT = `請根據我附上的筆記照片，產生複習用題目卡片。
+只輸出一個 JSON 程式碼區塊，不要有其他說明文字，格式如下：
+{"decks":[{"name":"牌組名稱","cards":[{"q":"問題","a":"簡短答案","wrong":["干擾1","干擾2","干擾3"],"note":"補充說明"}]}]}
+規則：
+- 每張卡只問一個概念，答案盡量簡短（一句話以內）
+- wrong 的干擾選項要和正確答案同類型、看起來合理但明確錯誤
+- 照片看不清楚的地方不要猜，請跳過
+- 不要編造照片中沒有的內容`;
 
 let store = { decks: [], groups: [], collapsed: {}, tomb: {}, settings: { filter: 'due', mode: 'flip', count: 20, theme: 'indigo' } };
 let storageOK = true;
@@ -312,8 +312,8 @@ function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { co
 let toastTimer;
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 1800); }
 function copyText(t) {
-  const fallback = () => { const x = document.createElement('textarea'); x.value = t; x.style.position = 'fixed'; x.style.opacity = '0'; document.body.appendChild(x); x.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} x.remove(); toast(ok ? '已复制' : '复制失败，请手动选取'); };
-  try { navigator.clipboard.writeText(t).then(() => toast('已复制'), fallback); } catch (e) { fallback(); }
+  const fallback = () => { const x = document.createElement('textarea'); x.value = t; x.style.position = 'fixed'; x.style.opacity = '0'; document.body.appendChild(x); x.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} x.remove(); toast(ok ? '已複制' : '複制失敗，請手動選取'); };
+  try { navigator.clipboard.writeText(t).then(() => toast('已複制'), fallback); } catch (e) { fallback(); }
 }
 
 /* ---------- storage ---------- */
@@ -363,7 +363,7 @@ function parseJSON(text) {
   try { return JSON.parse(t); } catch (e) {}
   const i = t.search(/[\[{]/), j = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
   if (i >= 0 && j > i) { try { return JSON.parse(t.slice(i, j + 1)); } catch (e) {} }
-  throw new Error('读不出 JSON。请确认粘贴的是完整内容（从 { 到 }），没有被截断。');
+  throw new Error('讀不出 JSON。請確認粘貼的是完整內容（從 { 到 }），沒有被截斷。');
 }
 function toDecks(obj, fallback) {
   let decks;
@@ -371,7 +371,7 @@ function toDecks(obj, fallback) {
   else if (obj && Array.isArray(obj.decks)) decks = obj.decks;
   else if (obj && Array.isArray(obj.cards)) decks = [obj];
   else throw new Error('找不到 decks 或 cards 字段。');
-  return decks.map(d => ({ id: d.id, group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌组').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
+  return decks.map(d => ({ id: d.id, group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌組').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
 }
 function mergeDecks(decks) {
   let added = 0, skipped = 0, newDecks = 0;
@@ -416,7 +416,7 @@ function buildQueue(scope, f, n) {
 }
 function startSession(cfg) {
   const queue = buildQueue(cfg.scope, cfg.filter, cfg.count);
-  if (!queue.length) { toast('没有符合的卡片'); return; }
+  if (!queue.length) { toast('沒有符合的卡片'); return; }
   S = { cfg, queue, idx: 0, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true };
   store.settings = { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode, count: cfg.count }; save();
   enter();
@@ -474,19 +474,19 @@ function ringHTML(c) {
 }
 function statsHTML(c, withTotal) {
   let h = '';
-  if (withTotal) h += `<span><b>${c.total}</b> 张</span>`;
-  h += `<span><b>${c.due}</b> 待复习</span>`;
+  if (withTotal) h += `<span><b>${c.total}</b> 張</span>`;
+  h += `<span><b>${c.due}</b> 待複習</span>`;
   if (c.weak) h += `<span><b>${c.weak}</b> 不熟</span>`;
-  if (c.wrong) h += `<span><b>${c.wrong}</b> 错题</span>`;
+  if (c.wrong) h += `<span><b>${c.wrong}</b> 錯題</span>`;
   if (c.known) h += `<span><b>${c.known}</b> 已熟悉</span>`;
   return `<div class="stats">${h}</div>`;
 }
 
 function viewHome() {
-  let h = `<header class="top"><h1 class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z"/><circle cx="18.2" cy="5.2" r="1.1" fill="currentColor"/><circle cx="21" cy="9" r=".6" fill="currentColor"/></svg><i>Moon</i></h1><div class="row"><button class="pill" data-act="go" data-r="import">${ic('plus')}导入</button><button class="pill icon" data-act="all-cards" aria-label="全部题目">${ic('list')}</button><button class="pill icon" data-act="go" data-r="backup" aria-label="备份与还原">${ic('save')}</button></div></header>`;
-  if (!storageOK) h += `<div class="warn">这个浏览器目前无法保存进度，关掉页面后进度会消失。建议用 Chrome 开启文件；复习完也可以到右上角的备份先存档。</div>`;
+  let h = `<header class="top"><h1 class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z"/><circle cx="18.2" cy="5.2" r="1.1" fill="currentColor"/><circle cx="21" cy="9" r=".6" fill="currentColor"/></svg><i>Moon</i></h1><div class="row"><button class="pill" data-act="go" data-r="import">${ic('plus')}匯入</button><button class="pill icon" data-act="all-cards" aria-label="全部題目">${ic('list')}</button><button class="pill icon" data-act="go" data-r="backup" aria-label="備份與還原">${ic('save')}</button></div></header>`;
+  if (!storageOK) h += `<div class="warn">這個瀏覽器目前無法儲存進度，關掉頁面後進度會消失。建議用 Chrome 開啟檔案；複習完也可以到右上角的備份先存檔。</div>`;
   if (!store.decks.length) {
-    return h + `<div class="card center" style="padding:32px 22px"><p class="serif" style="font-size:20px;margin:0 0 6px">还没有牌组</p><p class="sub" style="margin:0 0 20px">把笔记拍照给 AI 产生 JSON，再贴进来就能开始复习。</p><button class="btn" data-act="go" data-r="import">导入题目</button><button class="pill" style="width:100%;justify-content:center;min-height:50px;margin-top:10px" data-act="new-deck">${ic('plus')}新建空牌组</button></div>`;
+    return h + `<div class="card center" style="padding:32px 22px"><p class="serif" style="font-size:20px;margin:0 0 6px">還沒有牌組</p><p class="sub" style="margin:0 0 20px">把筆記拍照給 AI 產生 JSON，再貼進來就能開始複習。</p><button class="btn" data-act="go" data-r="import">匯入題目</button><button class="pill" style="width:100%;justify-content:center;min-height:50px;margin-top:10px" data-act="new-deck">${ic('plus')}新建空牌組</button></div>`;
   }
   const all = counts('all');
   const run = store.settings.count > 0 ? Math.min(all.due, store.settings.count) : all.due;
@@ -496,33 +496,33 @@ function viewHome() {
     let sp = '';
     if (all.fresh) sp += `<span><b>${all.fresh}</b> 新卡</span>`;
     if (all.weak) sp += `<span><b>${all.weak}</b> 不熟</span>`;
-    if (all.wrong) sp += `<span><b>${all.wrong}</b> 错题</span>`;
-    h += `<div class="hero-row"><span class="n">${all.due}</span><span class="cap">张今天要复习</span></div><div class="stats">${sp || '&nbsp;'}</div>`;
-    h += `<div class="go"><button class="btn" data-act="quick">开始复习（${run} 张）</button><button class="more" data-act="adjust">调整</button></div>`;
+    if (all.wrong) sp += `<span><b>${all.wrong}</b> 錯題</span>`;
+    h += `<div class="hero-row"><span class="n">${all.due}</span><span class="cap">張今天要複習</span></div><div class="stats">${sp || '&nbsp;'}</div>`;
+    h += `<div class="go"><button class="btn" data-act="quick">開始複習（${run} 張）</button><button class="more" data-act="adjust">調整</button></div>`;
   } else {
-    h += `<div class="done-t">今天的卡都复习完了</div><div class="stats"><span>想多练的话，可以挑不熟或错题再来一轮</span></div><div class="go"><button class="btn" data-act="adjust">自选范围复习</button></div>`;
+    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，可以挑不熟或錯題再來一輪</span></div><div class="go"><button class="btn" data-act="adjust">自選範圍複習</button></div>`;
   }
   h += `</section>`;
   h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">全部混合</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
-  h = pick ? hh + `<p class="sub" style="margin:4px 4px 0">点选要复习的牌组，也可以点群组一次选整组</p>` : hh + h + `<button class="pill" style="width:100%;justify-content:center;min-height:50px;margin:2px 0 6px;color:var(--acc);font-weight:600" data-act="pick-start">${ic('check')}选择牌组复习</button>`;
+  h = pick ? hh + `<p class="sub" style="margin:4px 4px 0">點選要複習的牌組，也可以點群組一次選整組</p>` : hh + h + `<button class="pill" style="width:100%;justify-content:center;min-height:50px;margin:2px 0 6px;color:var(--acc);font-weight:600" data-act="pick-start">${ic('check')}選擇牌組複習</button>`;
   const deckRow = d => { const c = counts(d.id); if (pick) { const on = pick.has(d.id); return `<div class="deck"><button class="deck-main pk${on ? ' on' : ''}" data-act="pick-toggle" data-id="${d.id}" aria-pressed="${on}"><span class="chk-c" style="${on ? 'background:var(--acc);border-color:var(--acc);color:var(--acc-ink)' : ''}">${ic('check')}</span><div class="info"><div class="name">${esc(d.name)}</div>${statsHTML(c, true)}</div></button></div>`; } return `<div class="deck"><button class="deck-main" data-act="sheet" data-id="${d.id}">${ringHTML(c)}<div class="info"><div class="name">${esc(d.name)}</div>${statsHTML(c, true)}</div></button><button class="pill icon flat" data-act="manage" data-id="${d.id}" aria-label="管理“${esc(d.name)}”">${ic('more')}</button></div>`; };
   for (const g of store.groups) {
     const ds = store.decks.filter(d => d.group === g), gc = counts('g:' + g), col = !!store.collapsed[g];
-    if (pick) { const all_ = ds.length && ds.every(d => pick.has(d.id)); h += `<div class="grp"><button class="grp-h${all_ ? ' on' : ''}" data-act="pick-grp" data-g="${esc(g)}"><span class="chk-c">${ic('check')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 个牌组</span></button></div><div class="grp-body">${ds.map(deckRow).join('')}</div>`; continue; }
-    h += `<div class="grp"><button class="grp-h" data-act="grp-toggle" data-g="${esc(g)}" aria-expanded="${!col}"><span class="chev${col ? '' : ' open'}">${ic('chev')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 个牌组${gc.due ? ' · ' + gc.due + ' 待复习' : ''}</span></button><button class="pill icon flat" data-act="grp-manage" data-g="${esc(g)}" aria-label="管理群组“${esc(g)}”">${ic('more')}</button></div>`;
-    if (!col) h += `<div class="grp-body">${ds.length ? ds.map(deckRow).join('') : '<p class="grp-empty">这个群组还没有牌组，点右上角 ⋯ 新增。</p>'}</div>`;
+    if (pick) { const all_ = ds.length && ds.every(d => pick.has(d.id)); h += `<div class="grp"><button class="grp-h${all_ ? ' on' : ''}" data-act="pick-grp" data-g="${esc(g)}"><span class="chk-c">${ic('check')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 個牌組</span></button></div><div class="grp-body">${ds.map(deckRow).join('')}</div>`; continue; }
+    h += `<div class="grp"><button class="grp-h" data-act="grp-toggle" data-g="${esc(g)}" aria-expanded="${!col}"><span class="chev${col ? '' : ' open'}">${ic('chev')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 個牌組${gc.due ? ' · ' + gc.due + ' 待複習' : ''}</span></button><button class="pill icon flat" data-act="grp-manage" data-g="${esc(g)}" aria-label="管理群組“${esc(g)}”">${ic('more')}</button></div>`;
+    if (!col) h += `<div class="grp-body">${ds.length ? ds.map(deckRow).join('') : '<p class="grp-empty">這個群組還沒有牌組，點右上角 ⋯ 新增。</p>'}</div>`;
   }
   const loose = store.decks.filter(d => !d.group);
-  if (store.groups.length && loose.length) h += `<div class="glabel">未分组</div>`;
+  if (store.groups.length && loose.length) h += `<div class="glabel">未分組</div>`;
   h += loose.map(deckRow).join('');
-  if (pick) return h + `<div style="height:170px"></div><div class="selbar"><div class="selin"><div class="selrow"><span class="sub">已选 ${pick.size} 个牌组 · ${poolFor('m:' + [...pick].join(',')).length} 张卡片</span><button class="pill flat" data-act="pick-all">全选</button></div><div class="row"><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="pick-cancel">取消</button><button class="btn" data-act="pick-go" ${pick.size ? '' : 'disabled'}>下一步：选范围与方式</button></div></div></div>`;
-  h += `<div class="row" style="margin-top:14px"><button class="pill" style="flex:1;justify-content:center;min-height:50px" data-act="new-deck">${ic('plus')}新增牌组</button><button class="pill" style="flex:1;justify-content:center;min-height:50px" data-act="new-group">${ic('plus')}新增群组</button></div>`;
-  h += `<div class="legend"><span><i style="background:var(--good-ring)"></i>熟练</span><span><i style="background:var(--warn-ring)"></i>学习中</span></div>`;
+  if (pick) return h + `<div style="height:170px"></div><div class="selbar"><div class="selin"><div class="selrow"><span class="sub">已選 ${pick.size} 個牌組 · ${poolFor('m:' + [...pick].join(',')).length} 張卡片</span><button class="pill flat" data-act="pick-all">全選</button></div><div class="row"><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="pick-cancel">取消</button><button class="btn" data-act="pick-go" ${pick.size ? '' : 'disabled'}>下一步：選範圍與方式</button></div></div></div>`;
+  h += `<div class="row" style="margin-top:14px"><button class="pill" style="flex:1;justify-content:center;min-height:50px" data-act="new-deck">${ic('plus')}新增牌組</button><button class="pill" style="flex:1;justify-content:center;min-height:50px" data-act="new-group">${ic('plus')}新增群組</button></div>`;
+  h += `<div class="legend"><span><i style="background:var(--good-ring)"></i>熟練</span><span><i style="background:var(--warn-ring)"></i>學習中</span></div>`;
   return h;
 }
 
 function sheetHTML() {
-  const sh = sheet, name = sh.scope === 'all' ? '全部混合' : isG(sh.scope) ? sh.scope.slice(2) : isM(sh.scope) ? '已选 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 个牌组' : deck(sh.scope).name;
+  const sh = sheet, name = sh.scope === 'all' ? '全部混合' : isG(sh.scope) ? sh.scope.slice(2) : isM(sh.scope) ? '已選 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 個牌組' : deck(sh.scope).name;
   const pool = poolFor(sh.scope);
   const cnt = f => pool.filter(x => match(x.c, f)).length;
   const n = cnt(sh.filter);
@@ -531,13 +531,13 @@ function sheetHTML() {
   const run = Math.min(n, sh.count || n);
   return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div>
     <h2 class="t">${esc(name)}</h2>
-    <div class="sub" style="margin:8px 0 0">范围</div>
-    <div class="opts">${frow('due', '待复习与新卡')}${frow('weak', '不熟')}${frow('wrong', '错题本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
+    <div class="sub" style="margin:8px 0 0">範圍</div>
+    <div class="opts">${frow('due', '待複習與新卡')}${frow('weak', '不熟')}${frow('wrong', '錯題本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
     <div class="sub">方式</div>
-    <div class="seg">${seg('set-mode', 'flip', sh.mode, '翻卡')}${seg('set-mode', 'mcq', sh.mode, '选择题')}</div>
-    <div class="sub">每轮张数</div>
+    <div class="seg">${seg('set-mode', 'flip', sh.mode, '翻卡')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}</div>
+    <div class="sub">每輪張數</div>
     <div class="seg">${seg('set-count', 10, sh.count, '10')}${seg('set-count', 20, sh.count, '20')}${seg('set-count', 50, sh.count, '50')}${seg('set-count', 0, sh.count, '不限')}</div>
-    <button class="btn" data-act="start" ${n ? '' : 'disabled'}>${n ? `开始复习（${run} 张）` : '这个范围没有卡片'}</button>
+    <button class="btn" data-act="start" ${n ? '' : 'disabled'}>${n ? `開始複習（${run} 張）` : '這個範圍沒有卡片'}</button>
   </div></div>`;
 }
 
@@ -552,8 +552,8 @@ function viewStudy() {
   const mode = (S.cfg.mode === 'mcq' && S.opts) ? 'mcq' : 'flip';
   const pct = Math.round(S.idx / S.queue.length * 100);
   const enterCls = S.anim ? ' enter' : ''; S.anim = false;
-  let h = `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}结束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="编辑这张卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>`;
-  const tags = (c.inWrong ? '<span class="badge b">错题</span>' : '') + (c.seen ? '' : '<span class="badge">新卡</span>');
+  let h = `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>`;
+  const tags = (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.seen ? '' : '<span class="badge">新卡</span>');
   if (mode === 'mcq') {
     h += `<div class="stage${enterCls}"><div class="face solo"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div></div>`;
     S.opts.forEach((o, i) => {
@@ -564,34 +564,34 @@ function viewStudy() {
     h += `</div>`;
     if (S.picked !== null) {
       const ok = S.opts[S.picked] === c.a;
-      h += `<div class="fb ${ok ? 'ok-t' : 'bad-t'}">${ok ? '答对了' : '答错了，正确答案已标示'}</div>`;
+      h += `<div class="fb ${ok ? 'ok-t' : 'bad-t'}">${ok ? '答對了' : '答錯了，正確答案已標示'}</div>`;
       if (c.note) h += `<div class="card nt" style="white-space:pre-wrap;margin-top:6px">${esc(c.note)}</div>`;
-      if (ok) h += `<div style="margin:10px 0 14px"><button class="chip ${S.easy ? 'on' : ''}" data-act="easy">这题很简单</button></div>`;
-      h += `<button class="btn" data-act="next">下一题</button>`;
+      if (ok) h += `<div style="margin:10px 0 14px"><button class="chip ${S.easy ? 'on' : ''}" data-act="easy">這題很簡單</button></div>`;
+      h += `<button class="btn" data-act="next">下一題</button>`;
     }
   } else {
     h += `<div class="fl-wrap"><div class="stage${enterCls}"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
-      <div class="face front" data-act="flip"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div><div class="hint">点一下翻面</div></div>
+      <div class="face front" data-act="flip"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div><div class="hint">點一下翻面</div></div>
       <div class="face back"><div class="qs">${esc(c.q)}</div><div class="hair"></div><div class="at">${esc(c.a)}</div>${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
     </div></div></div>
-    <div id="ctl">${S.flipped ? ratesHTML(c) : `<button class="btn" data-act="flip">显示答案</button>`}</div></div>`;
+    <div id="ctl">${S.flipped ? ratesHTML(c) : `<button class="btn" data-act="flip">顯示答案</button>`}</div></div>`;
   }
   return h;
 }
 function viewDone() {
   const st = S.stats, total = st.reduce((a, b) => a + b, 0);
   const col = ['var(--bad)', 'var(--warn)', 'var(--good)', 'var(--acc)'];
-  return `<div class="done"><header class="top"><h1>这一轮完成</h1></header>
+  return `<div class="done"><header class="top"><h1>這一輪完成</h1></header>
   <div class="card center" style="padding:24px 18px"><p class="sub" style="margin:0">共作答 ${total} 次</p>
   <div class="stat">${[0, 1, 2, 3].map(r => `<div><b style="color:${col[r]}">${st[r]}</b><span>${RATE_LABELS[r]}</span></div>`).join('')}</div>
-  <p class="sub" style="margin:0">答错的卡片已进错题本，之后会更常出现。</p></div>
-  <button class="btn" data-act="again-round">再来一轮</button>
-  <button class="pill" style="width:100%;justify-content:center;margin-top:12px;min-height:50px" data-act="go" data-r="home">回首页</button></div>`;
+  <p class="sub" style="margin:0">答錯的卡片已進錯題本，之後會更常出現。</p></div>
+  <button class="btn" data-act="again-round">再來一輪</button>
+  <button class="pill" style="width:100%;justify-content:center;margin-top:12px;min-height:50px" data-act="go" data-r="home">回首頁</button></div>`;
 }
 
 function badgesHTML(c) {
   const st = status(c);
-  return (c.weak ? '<span class="badge w">不熟</span>' : '') + (c.inWrong ? '<span class="badge b">错题</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : `<span class="badge">${st === 'new' ? '新卡' : st === 'mastered' ? '熟练' : '学习中'}</span>`);
+  return (c.weak ? '<span class="badge w">不熟</span>' : '') + (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : `<span class="badge">${st === 'new' ? '新卡' : st === 'mastered' ? '熟練' : '學習中'}</span>`);
 }
 function cardTags(c) {
   if (c.known) return 'known';
@@ -618,18 +618,18 @@ function viewDeck() {
   const d = isAll ? null : deck(route.id);
   if (!isAll && !d) return viewHome();
   const list = poolFor(route.id);
-  const title = isAll ? '全部题目' : d.name;
+  const title = isAll ? '全部題目' : d.name;
   let h = sel
-    ? `<header class="top"><button class="pill" data-act="sel-done">完成</button><span class="sub">点选要处理的卡片</span></header>`
-    : `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button><div class="row"><button class="pill" data-act="sel-start">选择</button>${isAll ? '' : `<button class="pill" data-act="new-card">${ic('plus')}新增</button>`}</div></header>`;
+    ? `<header class="top"><button class="pill" data-act="sel-done">完成</button><span class="sub">點選要處理的卡片</span></header>`
+    : `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button><div class="row"><button class="pill" data-act="sel-start">選擇</button>${isAll ? '' : `<button class="pill" data-act="new-card">${ic('plus')}新增</button>`}</div></header>`;
   h += `<h1 style="margin:0 0 ${isAll ? 4 : 14}px;overflow:hidden;text-overflow:ellipsis">${esc(title)}</h1>`;
-  if (isAll) h += `<p class="sub" style="margin:0 0 12px">共 ${list.length} 张，来自 ${store.decks.length} 个牌组</p>`;
-  h += `<input type="text" id="search" placeholder="搜索问题或答案" value="${esc(listQuery)}" aria-label="搜索">`;
-  const F = [['all', '全部'], ['due', '待复习'], ['weak', '不熟'], ['wrong', '错题'], ['new', '新卡'], ['known', '已熟悉']];
+  if (isAll) h += `<p class="sub" style="margin:0 0 12px">共 ${list.length} 張，來自 ${store.decks.length} 個牌組</p>`;
+  h += `<input type="text" id="search" placeholder="搜尋問題或答案" value="${esc(listQuery)}" aria-label="搜尋">`;
+  const F = [['all', '全部'], ['due', '待複習'], ['weak', '不熟'], ['wrong', '錯題'], ['new', '新卡'], ['known', '已熟悉']];
   const cnt = k => k === 'all' ? list.length : list.filter(x => (' ' + cardTags(x.c) + ' ').includes(' ' + k + ' ')).length;
   h += `<div class="fchips">${F.map(([k, t]) => `<button class="chip${listFilter === k ? ' on' : ''}" data-act="lf" data-v="${k}" data-count="${cnt(k)}">${t} ${cnt(k)}</button>`).join('')}</div>`;
   h += `<div class="list" id="list">`;
-  if (!list.length) h += `<p class="sub center" style="padding:16px 0">还没有卡片</p>`;
+  if (!list.length) h += `<p class="sub center" style="padding:16px 0">還沒有卡片</p>`;
   for (const { d: dk, c } of list) {
     const sx = esc((c.q + ' ' + c.a + (isAll ? ' ' + dk.name : '')).toLowerCase());
     const sub = isAll ? `<small>${esc(dk.name)}</small>` : '';
@@ -637,26 +637,26 @@ function viewDeck() {
     if (sel) h += `<button class="item${c.known ? ' known' : ''}${sel.ids.has(c.id) ? ' sel' : ''}" data-act="sel-toggle" ${common}><span class="chk-c">${ic('check')}</span><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
     else h += `<button class="item${c.known ? ' known' : ''}" data-act="edit" ${common}><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
   }
-  h += `<p id="empty" class="sub center" style="display:none;padding:16px 0">没有符合的卡片</p></div>`;
+  h += `<p id="empty" class="sub center" style="display:none;padding:16px 0">沒有符合的卡片</p></div>`;
   if (sel) {
-    h += `<div style="height:230px"></div><div class="selbar"><div class="selin"><div class="selrow"><span id="selcount" class="sub">已选 ${sel.ids.size} 张</span><button class="pill flat" data-act="sel-all">全选</button></div><div class="row"><button class="btn" data-act="bulk-known">标为已熟悉</button><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bulk-unknown">取消已熟悉</button></div><div class="row" style="margin-top:8px"><button class="pill" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-move">移到其他牌组</button><button class="pill danger" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-del">删除</button></div></div></div>`;
+    h += `<div style="height:230px"></div><div class="selbar"><div class="selin"><div class="selrow"><span id="selcount" class="sub">已選 ${sel.ids.size} 張</span><button class="pill flat" data-act="sel-all">全選</button></div><div class="row"><button class="btn" data-act="bulk-known">標為已熟悉</button><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bulk-unknown">取消已熟悉</button></div><div class="row" style="margin-top:8px"><button class="pill" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-move">移到其他牌組</button><button class="pill danger" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-del">刪除</button></div></div></div>`;
   } else if (!isAll) {
-    h += `<h2>牌组设置</h2><div class="row" style="flex-wrap:wrap"><button class="pill" data-act="rename">重命名</button><button class="pill" data-act="deck-group">移到群组</button><button class="pill" data-act="reset">重置进度</button><button class="pill danger" data-act="del-deck">删除牌组</button></div>`;
+    h += `<h2>牌組設定</h2><div class="row" style="flex-wrap:wrap"><button class="pill" data-act="rename">重命名</button><button class="pill" data-act="deck-group">移到群組</button><button class="pill" data-act="reset">重置進度</button><button class="pill danger" data-act="del-deck">刪除牌組</button></div>`;
   }
   return h;
 }
 function grpSheetHTML() {
   const g = grpSheet.g, n = store.decks.filter(d => d.group === g).length;
   const opt = (act, label, extra) => `<button class="rowopt${extra && extra.danger ? ' danger' : ''}" data-act="${act}" data-g="${esc(g)}"><span class="t">${label}</span></button>`;
-  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 个牌组</div><div class="opts">${opt('grp-study', '复习整个群组')}${opt('new-deck', '在此群组新增牌组')}${opt('grp-rename', '重命名群组')}${opt('grp-del', '删除群组（牌组会保留）', { danger: true })}</div></div></div>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 個牌組</div><div class="opts">${opt('grp-study', '複習整個群組')}${opt('new-deck', '在此群組新增牌組')}${opt('grp-rename', '重命名群組')}${opt('grp-del', '刪除群組（牌組會保留）', { danger: true })}</div></div></div>`;
 }
 function deckGrpHTML() {
   const d = deck(deckGrpSheet.did), cur = d.group || '';
   const o = (g, label) => `<button class="rowopt ${cur === g ? 'on' : ''}" data-act="deck-to-group" data-g="${esc(g)}"><span class="dot">${ic('check')}</span><span class="t">${esc(label)}</span></button>`;
-  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">移到哪个群组</h2><div class="sub" style="margin:6px 0 12px">${esc(d.name)}</div><div class="opts">${o('', '不放进群组')}${store.groups.map(g => o(g, g)).join('')}<button class="rowopt" data-act="deck-group-new"><span class="dot" style="color:var(--acc);border-color:var(--acc)">${ic('plus')}</span><span class="t">新建群组…</span></button></div></div></div>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">移到哪個群組</h2><div class="sub" style="margin:6px 0 12px">${esc(d.name)}</div><div class="opts">${o('', '不放進群組')}${store.groups.map(g => o(g, g)).join('')}<button class="rowopt" data-act="deck-group-new"><span class="dot" style="color:var(--acc);border-color:var(--acc)">${ic('plus')}</span><span class="t">新建群組…</span></button></div></div></div>`;
 }
 function moveHTML() {
-  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">移到哪个牌组</h2><div class="sub" style="margin:6px 0 12px">已选 ${sel ? sel.ids.size : 0} 张</div><div class="opts">${store.decks.map(d => `<button class="rowopt" data-act="move-to" data-id="${d.id}"><span class="t">${esc(dname(d))}</span><span class="c">${d.cards.length}</span></button>`).join('')}<button class="rowopt" data-act="move-new"><span class="dot" style="color:var(--acc);border-color:var(--acc)">${ic('plus')}</span><span class="t">新建牌组…</span></button></div></div></div>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">移到哪個牌組</h2><div class="sub" style="margin:6px 0 12px">已選 ${sel ? sel.ids.size : 0} 張</div><div class="opts">${store.decks.map(d => `<button class="rowopt" data-act="move-to" data-id="${d.id}"><span class="t">${esc(dname(d))}</span><span class="c">${d.cards.length}</span></button>`).join('')}<button class="rowopt" data-act="move-new"><span class="dot" style="color:var(--acc);border-color:var(--acc)">${ic('plus')}</span><span class="t">新建牌組…</span></button></div></div></div>`;
 }
 function doMove(tid) {
   const tg = deck(tid); if (!tg || !sel) return;
@@ -673,46 +673,46 @@ function doMove(tid) {
   }
   tg.cards.push(...picked);
   sel = null; moveSheet = null; save(); render();
-  toast(`已移动 ${picked.length} 张到“${tg.name}”${skipped ? `，${skipped} 张因重复未移动` : ''}`);
+  toast(`已移動 ${picked.length} 張到“${tg.name}”${skipped ? `，${skipped} 張因重複未移動` : ''}`);
 }
 
 function modalHTML() {
   let c = { q: '', a: '', wrong: [], note: '' };
   if (modal.cid) { const f = find(modal.did, modal.cid); if (f) c = f.c; }
   return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div>
-    <h2 class="t">${modal.cid ? '编辑卡片' : '新增卡片'}</h2>
-    <label class="f">问题</label><textarea id="m-q">${esc(c.q)}</textarea>
-    <label class="f">正确答案</label><textarea id="m-a" style="min-height:72px">${esc(c.a)}</textarea>
-    <label class="f">干扰选项（一行一个，可留空，选择题会自动补）</label><textarea id="m-w" style="min-height:92px">${esc((c.wrong || []).join('\n'))}</textarea>
-    <label class="f">补充说明（可留空）</label><textarea id="m-n" style="min-height:72px">${esc(c.note || '')}</textarea>
-    <label class="chk"><input type="checkbox" id="m-k" ${c.known ? 'checked' : ''}><span>已熟悉（不再出现在复习中）</span></label>
-    <div class="row" style="margin-top:18px"><button class="btn" data-act="save-card">保存</button>${modal.cid ? '<button class="pill danger" data-act="del-card" style="min-height:54px;border-radius:16px">删除</button>' : ''}<button class="pill" data-act="close" style="min-height:54px;border-radius:16px">取消</button></div>
+    <h2 class="t">${modal.cid ? '編輯卡片' : '新增卡片'}</h2>
+    <label class="f">問題</label><textarea id="m-q">${esc(c.q)}</textarea>
+    <label class="f">正確答案</label><textarea id="m-a" style="min-height:72px">${esc(c.a)}</textarea>
+    <label class="f">干擾選項（一行一個，可留空，選擇題會自動補）</label><textarea id="m-w" style="min-height:92px">${esc((c.wrong || []).join('\n'))}</textarea>
+    <label class="f">補充說明（可留空）</label><textarea id="m-n" style="min-height:72px">${esc(c.note || '')}</textarea>
+    <label class="chk"><input type="checkbox" id="m-k" ${c.known ? 'checked' : ''}><span>已熟悉（不再出現在複習中）</span></label>
+    <div class="row" style="margin-top:18px"><button class="btn" data-act="save-card">儲存</button>${modal.cid ? '<button class="pill danger" data-act="del-card" style="min-height:54px;border-radius:16px">刪除</button>' : ''}<button class="pill" data-act="close" style="min-height:54px;border-radius:16px">取消</button></div>
   </div></div>`;
 }
 
 function importDeckOptions() {
   const cur = deck(store.settings.importTarget) ? store.settings.importTarget : '';
-  return `<option value="">跟随文件里的牌组名称</option>` + store.decks.map(d => `<option value="${d.id}"${d.id === cur ? ' selected' : ''}>${esc(dname(d))}（${d.cards.length} 张）</option>`).join('');
+  return `<option value="">跟隨檔案裡的牌組名稱</option>` + store.decks.map(d => `<option value="${d.id}"${d.id === cur ? ' selected' : ''}>${esc(dname(d))}（${d.cards.length} 張）</option>`).join('');
 }
 function viewImport() {
   return `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button></header>
-  <h1 style="margin-bottom:6px">导入题目</h1>
+  <h1 style="margin-bottom:6px">匯入題目</h1>
   <div class="card">
-    <label class="f" style="margin-top:0">粘贴 AI 产生的 JSON</label>
+    <label class="f" style="margin-top:0">粘貼 AI 產生的 JSON</label>
     <textarea id="imp-text" placeholder='{"decks":[{"name":"…","cards":[…]}]}' style="min-height:160px"></textarea>
-    <label class="f">或选择 .json 文件</label>
+    <label class="f">或選擇 .json 檔案</label>
     <input type="file" id="imp-file" accept=".json,application/json,text/plain">
-    <label class="f">导入到哪个牌组</label>
+    <label class="f">匯入到哪個牌組</label>
     <select id="imp-deck">${importDeckOptions()}</select>
-    <label class="f">或新建牌组（填了就以这个名称为准）</label>
+    <label class="f">或新建牌組（填了就以這個名稱為準）</label>
     <input type="text" id="imp-name" placeholder="例如：第三章">
-    <p class="sub" style="margin:8px 0 0">选了牌组或填了名称，文件里的所有题目都会放进这个牌组，不看文件里的牌组名称。都没选时，才会用文件里的牌组名称。</p>
-    <button class="btn" data-act="do-import" style="margin-top:18px">导入</button>
+    <p class="sub" style="margin:8px 0 0">選了牌組或填了名稱，檔案裡的所有題目都會放進這個牌組，不看檔案裡的牌組名稱。都沒選時，才會用檔案裡的牌組名稱。</p>
+    <button class="btn" data-act="do-import" style="margin-top:18px">匯入</button>
     <div id="imp-msg" class="msg"></div>
   </div>
-  <div class="card"><div class="row" style="justify-content:space-between"><b>给 AI 的提示词</b><button class="pill" data-act="copy-prompt">复制</button></div>
-  <pre>${esc(PROMPT)}</pre><p class="sub" style="margin:0">拍照时一起贴给 AI。重复导入同一牌组时，相同的题目会自动跳过。</p></div>
-  <button class="pill" style="width:100%;justify-content:center;min-height:50px" data-act="sample">加载示例牌组试用</button>`;
+  <div class="card"><div class="row" style="justify-content:space-between"><b>給 AI 的提示詞</b><button class="pill" data-act="copy-prompt">複制</button></div>
+  <pre>${esc(PROMPT)}</pre><p class="sub" style="margin:0">拍照時一起貼給 AI。重複匯入同一牌組時，相同的題目會自動跳過。</p></div>
+  <button class="pill" style="width:100%;justify-content:center;min-height:50px" data-act="sample">加載示例牌組試用</button>`;
 }
 
 /* ---------- Google Drive sync (appDataFolder) ---------- */
@@ -758,7 +758,7 @@ function mergeRemote(r) {
   const addFrom = d => (d.cards || []).forEach(c => {
     if (!c || placed.has(c.id) || !cd.has(c.id)) return;
     const o = cd.get(c.id); let tg = out.get(o.did);
-    if (!tg) { tg = out.get('uncat') || out.set('uncat', { id: 'uncat', name: '未分类', group: '', upd: Date.now(), cards: [] }).get('uncat'); }
+    if (!tg) { tg = out.get('uncat') || out.set('uncat', { id: 'uncat', name: '未分類', group: '', upd: Date.now(), cards: [] }).get('uncat'); }
     tg.cards.push(o.c); placed.add(c.id);
   });
   lo.forEach(addFrom); ro.forEach(addFrom);
@@ -772,7 +772,7 @@ function loadGIS() {
   return new Promise((res, rej) => {
     if (window.google && google.accounts && google.accounts.oauth2) return res();
     const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
-    s.onload = res; s.onerror = () => rej(new Error('无法连接 Google（可能没有网络）')); document.head.appendChild(s);
+    s.onload = res; s.onerror = () => rej(new Error('無法連接 Google（可能沒有網絡）')); document.head.appendChild(s);
   });
 }
 async function getToken(interactive) {
@@ -781,14 +781,14 @@ async function getToken(interactive) {
   if (!gTC) gTC = google.accounts.oauth2.initTokenClient({ client_id: G_CLIENT, scope: G_SCOPE, callback: r => gOk && gOk(r), error_callback: e => gErr && gErr(e) });
   return new Promise((res, rej) => {
     gOk = r => { if (r.error) return rej(new Error(r.error_description || r.error)); gTok = r.access_token; gExp = Date.now() + (r.expires_in || 3600) * 1000; res(gTok); };
-    gErr = e => rej(new Error(e && e.type === 'popup_failed_to_open' ? '弹出窗口被拦截，请点“立即同步”' : e && e.type === 'popup_closed' ? '已取消登录' : '登录失败'));
+    gErr = e => rej(new Error(e && e.type === 'popup_failed_to_open' ? '彈出窗口被攔截，請點“立即同步”' : e && e.type === 'popup_closed' ? '已取消登入' : '登入失敗'));
     gTC.requestAccessToken({ prompt: store.settings.sync && store.settings.sync.on ? '' : 'consent' });
   });
 }
 async function gfetch(url, opt) {
   const r = await fetch(url, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + gTok }, (opt && opt.headers) || {}) }));
   if (r.status === 401) gTok = null;
-  if (!r.ok) throw new Error('Google 回应错误（' + r.status + '）');
+  if (!r.ok) throw new Error('Google 回應錯誤（' + r.status + '）');
   return r;
 }
 function setSyncMsg(m) { syncMsg = m; const el = document.getElementById('sync-msg'); if (el) el.textContent = m; }
@@ -813,8 +813,8 @@ async function syncNow(manual) {
     if (route.name !== 'study') render();
     if (manual) toast('已同步');
   } catch (e) {
-    setSyncMsg('同步失败：' + (e && e.message ? e.message : '未知错误'));
-    if (manual) toast('同步失败');
+    setSyncMsg('同步失敗：' + (e && e.message ? e.message : '未知錯誤'));
+    if (manual) toast('同步失敗');
   } finally { syncing = false; }
 }
 function autoSync() {          // called from user taps / when hiding the page
@@ -825,26 +825,26 @@ function autoSync() {          // called from user taps / when hiding the page
 }
 function syncCardHTML() {
   const sy = store.settings.sync || { on: false, last: 0 };
-  let h = '<h2>云端同步（Google）</h2><div class="card" style="margin-top:0">';
-  if (!G_OK) h += '<p class="sub" style="margin:0">只有放在网址上的版本才能同步（直接打开本机文件不行）。</p>';
-  else if (sy.on) h += `<div class="ok-t" style="font-weight:600">已开启同步</div><p class="sub" style="margin:6px 0 12px">上次同步：${sy.last ? new Date(sy.last).toLocaleString() : '尚未'}。数据存在你自己的 Google 云端硬盘里（App 专用的隐藏文件夹）。</p><div class="row"><button class="btn" data-act="sync-now">立即同步</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="sync-off">关闭</button></div>`;
-  else h += '<p class="sub" style="margin:0 0 12px">登录后，数据会同步到你自己的 Google 云端硬盘（App 专用的隐藏文件夹），换手机或清除浏览器数据后也能取回。没有登录也能正常使用。</p><button class="btn" data-act="sync-now">登录 Google 并同步</button>';
+  let h = '<h2>雲端同步（Google）</h2><div class="card" style="margin-top:0">';
+  if (!G_OK) h += '<p class="sub" style="margin:0">只有放在網址上的版本才能同步（直接打開本機檔案不行）。</p>';
+  else if (sy.on) h += `<div class="ok-t" style="font-weight:600">已開啟同步</div><p class="sub" style="margin:6px 0 12px">上次同步：${sy.last ? new Date(sy.last).toLocaleString() : '尚未'}。資料存在你自己的 Google 雲端硬碟裡（App 專用的隱藏檔案夾）。</p><div class="row"><button class="btn" data-act="sync-now">立即同步</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="sync-off">關閉</button></div>`;
+  else h += '<p class="sub" style="margin:0 0 12px">登入後，資料會同步到你自己的 Google 雲端硬碟（App 專用的隱藏檔案夾），換手機或清除瀏覽器資料後也能取回。沒有登入也能正常使用。</p><button class="btn" data-act="sync-now">登入 Google 并同步</button>';
   return h + `<div id="sync-msg" class="msg">${esc(syncMsg)}</div></div>`;
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && gTok && Date.now() < gExp - 60000 && store.settings.sync && store.settings.sync.on && !syncing && route.name !== 'study') { lastTry = 0; syncNow(false); } });
 function viewBackup() {
   return `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button></header>
-  <h1 style="margin-bottom:6px">备份与还原</h1>
-  <div class="card"><div class="${storageOK ? 'ok-t' : 'bad-t'}" style="font-weight:600">${storageOK ? '进度会自动存在这个浏览器' : '这个浏览器无法保存进度'}</div>
-  <p class="sub" style="margin:6px 0 0">清除浏览器数据、换手机或换浏览器都会让进度消失。偶尔备份一次比较安心。</p></div>
+  <h1 style="margin-bottom:6px">備份與還原</h1>
+  <div class="card"><div class="${storageOK ? 'ok-t' : 'bad-t'}" style="font-weight:600">${storageOK ? '進度會自動存在這個瀏覽器' : '這個瀏覽器無法儲存進度'}</div>
+  <p class="sub" style="margin:6px 0 0">清除瀏覽器資料、換手機或換瀏覽器都會讓進度消失。偶爾備份一次比較安心。</p></div>
   ${syncCardHTML()}
-  <h2>备份</h2>
-  <div class="row"><button class="btn" data-act="export-file">保存为文件</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="export-copy">复制文字</button></div>
-  <h2>还原（会替换目前全部数据）</h2>
-  <div class="card" style="margin-top:0"><textarea id="res-text" placeholder="粘贴备份内容，或选择文件"></textarea>
+  <h2>備份</h2>
+  <div class="row"><button class="btn" data-act="export-file">儲存為檔案</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="export-copy">複制文字</button></div>
+  <h2>還原（會替換目前全部資料）</h2>
+  <div class="card" style="margin-top:0"><textarea id="res-text" placeholder="粘貼備份內容，或選擇檔案"></textarea>
   <input type="file" id="res-file" accept=".json,application/json,text/plain" style="margin-top:10px">
-  <button class="btn" data-act="do-restore" style="margin-top:14px">还原</button><div id="res-msg" class="msg"></div></div>
-  <h2>清除</h2><button class="pill danger" data-act="clear-all">清除全部数据</button>`;
+  <button class="btn" data-act="do-restore" style="margin-top:14px">還原</button><div id="res-msg" class="msg"></div></div>
+  <h2>清除</h2><button class="pill danger" data-act="clear-all">清除全部資料</button>`;
 }
 
 function render() {
@@ -873,12 +873,12 @@ function askText(title, value, cb) {
   const i = $('#dlg-in'); if (i) { i.focus(); i.select(); }
 }
 function askConfirm(title, msg, okLabel, cb, danger) {
-  dlg = { type: 'confirm', title, msg, ok: okLabel || '确定', cb, danger: !!danger };
+  dlg = { type: 'confirm', title, msg, ok: okLabel || '確定', cb, danger: !!danger };
   render();
 }
 function dlgHTML() {
   const d = dlg;
-  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">取消</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '确定' : d.ok)}</button></div></div></div>`;
+  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">取消</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '確定' : d.ok)}</button></div></div></div>`;
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'dlg-in') { e.preventDefault(); const b = document.querySelector('[data-act=dlg-ok]'); if (b) b.click(); }
@@ -887,7 +887,7 @@ document.addEventListener('keydown', e => {
 /* ---------- events ---------- */
 function readFileInto(input, target) {
   const f = input.files && input.files[0]; if (!f) return;
-  const r = new FileReader(); r.onload = () => { $(target).value = r.result; toast('已读入文件'); }; r.readAsText(f);
+  const r = new FileReader(); r.onload = () => { $(target).value = r.result; toast('已讀入檔案'); }; r.readAsText(f);
 }
 document.addEventListener('change', e => {
   if (e.target.id === 'imp-file') readFileInto(e.target, '#imp-text');
@@ -926,11 +926,11 @@ document.addEventListener('click', e => {
     case 'pick': S.picked = +t.dataset.i; render(); break;
     case 'easy': S.easy = !S.easy; render(); break;
     case 'next': { const it = S.queue[S.idx], f = find(it.did, it.cid); const ok = S.opts[S.picked] === f.c.a; advance(ok ? (S.easy ? 3 : 2) : 0); break; }
-    case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已标记为不熟' : '已取消标记'); } break; }
+    case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已標記為不熟' : '已取消標記'); } break; }
     case 'known': {
       const it = S.queue[S.idx], f = it && find(it.did, it.cid); if (!f) break;
       if (f.c.known) { f.c.known = false; save(); render(); toast('已取消已熟悉'); }
-      else { f.c.known = true; f.c.weak = false; S.idx++; save(); enter(); window.scrollTo(0, 0); render(); toast('已标为已熟悉，之后不再出现'); }
+      else { f.c.known = true; f.c.weak = false; S.idx++; save(); enter(); window.scrollTo(0, 0); render(); toast('已標為已熟悉，之後不再出現'); }
       break;
     }
     case 'sel-start': sel = { ids: new Set() }; render(); break;
@@ -938,32 +938,32 @@ document.addEventListener('click', e => {
     case 'sel-toggle': {
       const id = t.dataset.cid;
       if (sel.ids.has(id)) sel.ids.delete(id); else sel.ids.add(id);
-      t.classList.toggle('sel', sel.ids.has(id)); $('#selcount').textContent = `已选 ${sel.ids.size} 张`; break;
+      t.classList.toggle('sel', sel.ids.has(id)); $('#selcount').textContent = `已選 ${sel.ids.size} 張`; break;
     }
     case 'sel-all': {
       const items = [...document.querySelectorAll('#list .item')].filter(el => el.style.display !== 'none');
       const allOn = items.length && items.every(el => sel.ids.has(el.dataset.cid));
       items.forEach(el => { if (allOn) sel.ids.delete(el.dataset.cid); else sel.ids.add(el.dataset.cid); el.classList.toggle('sel', !allOn); });
-      $('#selcount').textContent = `已选 ${sel.ids.size} 张`; break;
+      $('#selcount').textContent = `已選 ${sel.ids.size} 張`; break;
     }
     case 'bulk-known': case 'bulk-unknown': {
-      const n = sel.ids.size; if (!n) { toast('先点选卡片'); return; }
+      const n = sel.ids.size; if (!n) { toast('先點選卡片'); return; }
       const on = act === 'bulk-known';
       store.decks.forEach(d => d.cards.forEach(c => { if (sel.ids.has(c.id)) { c.known = on; if (on) c.weak = false; } }));
-      sel = null; save(); render(); toast(on ? `已将 ${n} 张标为已熟悉` : `已取消 ${n} 张的已熟悉`); break;
+      sel = null; save(); render(); toast(on ? `已將 ${n} 張標為已熟悉` : `已取消 ${n} 張的已熟悉`); break;
     }
     case 'bulk-del': {
-      const n = sel.ids.size; if (!n) { toast('先点选卡片'); return; }
-      askConfirm('删除卡片', `删除选中的 ${n} 张卡片？此操作无法恢复。`, '删除', () => {
+      const n = sel.ids.size; if (!n) { toast('先點選卡片'); return; }
+      askConfirm('刪除卡片', `刪除選中的 ${n} 張卡片？此操作無法還原。`, '刪除', () => {
         store.decks.forEach(d => { d.cards = d.cards.filter(c => !sel.ids.has(c.id)); });
-        sel = null; save(); render(); toast(`已删除 ${n} 张`);
+        sel = null; save(); render(); toast(`已刪除 ${n} 張`);
       }, true);
       break;
     }
-    case 'bulk-move': { if (!sel.ids.size) { toast('先点选卡片'); return; } moveSheet = {}; render(); break; }
+    case 'bulk-move': { if (!sel.ids.size) { toast('先點選卡片'); return; } moveSheet = {}; render(); break; }
     case 'move-to': doMove(t.dataset.id); break;
     case 'move-new': {
-      askText('新牌组名称', '', nm => {
+      askText('新牌組名稱', '', nm => {
         if (!nm || !nm.trim()) return;
         let tg = store.decks.find(x => x.name === nm.trim());
         if (!tg) { tg = { id: uid(), name: nm.trim(), cards: [] }; store.decks.push(tg); }
@@ -981,11 +981,11 @@ document.addEventListener('click', e => {
     case 'all-cards': go('deck', 'all'); break;
     case 'new-deck': {
       const ng = t.dataset.g || ''; grpSheet = null;
-      askText('新增牌组', '', nm => {
+      askText('新增牌組', '', nm => {
         if (!nm || !nm.trim()) return;
         const name = nm.trim(); let tg = store.decks.find(x => x.name === name);
-        if (tg) { toast('已有同名牌组，已为你打开'); go('deck', tg.id); return; }
-        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; store.decks.push(tg); save(); go('deck', tg.id); toast('已创建，点右上角“新增”加入题目');
+        if (tg) { toast('已有同名牌組，已為你打開'); go('deck', tg.id); return; }
+        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; store.decks.push(tg); save(); go('deck', tg.id); toast('已建立，點右上角“新增”加入題目');
       });
       break;
     }
@@ -1000,12 +1000,12 @@ document.addEventListener('click', e => {
     case 'pick-all': { if (pick.size === store.decks.length) pick.clear(); else store.decks.forEach(d => pick.add(d.id)); render(); break; }
     case 'pick-go': { if (!pick.size) return; const sc = 'm:' + [...pick].join(','); pick = null; openSheet(sc); break; }
     case 'sync-now': syncNow(true); break;
-    case 'sync-off': store.settings.sync = { on: false, last: 0 }; save(); try { if (gTok && window.google) google.accounts.oauth2.revoke(gTok, () => {}); } catch (e) {} gTok = null; setSyncMsg(''); render(); toast('已关闭同步（云端备份仍保留）'); break;
+    case 'sync-off': store.settings.sync = { on: false, last: 0 }; save(); try { if (gTok && window.google) google.accounts.oauth2.revoke(gTok, () => {}); } catch (e) {} gTok = null; setSyncMsg(''); render(); toast('已關閉同步（雲端備份仍保留）'); break;
     case 'new-group': {
-      askText('新增群组（例如：英语）', '', nm => {
+      askText('新增群組（例如：英語）', '', nm => {
         nm = (nm || '').trim(); if (!nm) return;
-        if (store.groups.includes(nm)) { toast('已有同名群组'); return; }
-        store.groups.push(nm); save(); render(); toast('已创建，可把牌组移进来');
+        if (store.groups.includes(nm)) { toast('已有同名群組'); return; }
+        store.groups.push(nm); save(); render(); toast('已建立，可把牌組移進來');
       });
       break;
     }
@@ -1014,9 +1014,9 @@ document.addEventListener('click', e => {
     case 'grp-study': { const g = t.dataset.g; grpSheet = null; openSheet('g:' + g); break; }
     case 'grp-rename': {
       const g = t.dataset.g; grpSheet = null;
-      askText('重命名群组', g, nm => {
+      askText('重命名群組', g, nm => {
         nm = (nm || '').trim(); if (!nm || nm === g) return;
-        if (store.groups.includes(nm)) { toast('已有同名群组'); return; }
+        if (store.groups.includes(nm)) { toast('已有同名群組'); return; }
         store.groups = store.groups.map(x => x === g ? nm : x);
         store.decks.forEach(d => { if (d.group === g) d.group = nm; });
         if (store.collapsed[g]) { store.collapsed[nm] = true; delete store.collapsed[g]; }
@@ -1026,7 +1026,7 @@ document.addEventListener('click', e => {
     }
     case 'grp-del': {
       const g = t.dataset.g; grpSheet = null;
-      askConfirm('删除群组', `删除群组“${g}”？里面的牌组不会被删除，会回到“未分组”。`, '删除', () => {
+      askConfirm('刪除群組', `刪除群組“${g}”？裡面的牌組不會被刪除，會回到“未分組”。`, '刪除', () => {
         store.groups = store.groups.filter(x => x !== g);
         store.decks.forEach(d => { if (d.group === g) delete d.group; });
         delete store.collapsed[g]; save(); render();
@@ -1037,11 +1037,11 @@ document.addEventListener('click', e => {
     case 'deck-to-group': {
       const d = deck(deckGrpSheet.did), g = t.dataset.g;
       if (g) d.group = g; else delete d.group;
-      deckGrpSheet = null; syncGroups(); save(); render(); toast(g ? '已移到“' + g + '”' : '已移出群组'); break;
+      deckGrpSheet = null; syncGroups(); save(); render(); toast(g ? '已移到“' + g + '”' : '已移出群組'); break;
     }
     case 'deck-group-new': {
       const did = deckGrpSheet.did; deckGrpSheet = null;
-      askText('新群组名称', '', nm => {
+      askText('新群組名稱', '', nm => {
         nm = (nm || '').trim(); if (!nm) return;
         const d = deck(did); d.group = nm; syncGroups(); store.collapsed[nm] = false; save(); render(); toast('已移到“' + nm + '”');
       });
@@ -1051,16 +1051,16 @@ document.addEventListener('click', e => {
     case 'new-card': modal = { did: route.id, cid: null }; render(); break;
     case 'save-card': {
       const q = $('#m-q').value.trim(), a = $('#m-a').value.trim();
-      if (!q || !a) { toast('问题和答案都要填'); return; }
+      if (!q || !a) { toast('問題和答案都要填'); return; }
       const wrong = $('#m-w').value.split('\n').map(s => s.trim()).filter(s => s && s !== a);
       const note = $('#m-n').value.trim(), known = $('#m-k').checked;
       const d = deck(modal.did);
       if (modal.cid) { const c = d.cards.find(x => x.id === modal.cid); Object.assign(c, { q, a, wrong, note, known }); if (known) c.weak = false; if (S && S.opts && S.queue[S.idx] && S.queue[S.idx].cid === modal.cid) S.opts = makeOptions(modal.did, c); }
       else d.cards.push(normCard({ q, a, wrong, note, known }));
-      modal = null; save(); render(); toast('已保存'); break;
+      modal = null; save(); render(); toast('已儲存'); break;
     }
     case 'del-card': {
-      askConfirm('删除卡片', '确定删除这张卡片？', '删除', () => {
+      askConfirm('刪除卡片', '確定刪除這張卡片？', '刪除', () => {
         const d = deck(modal.did); d.cards = d.cards.filter(x => x.id !== modal.cid);
         modal = null; save();
         if (S && route.name === 'study') { enter(); }
@@ -1068,61 +1068,61 @@ document.addEventListener('click', e => {
       }, true);
       break;
     }
-    case 'rename': { const d = deck(route.id); askText('重命名牌组', d.name, n => { if (n && n.trim()) { d.name = n.trim(); save(); render(); } }); break; }
-    case 'reset': { askConfirm('重置进度', '重置这个牌组的所有学习进度？（题目不会删除）', '重置', () => { deck(route.id).cards.forEach(c => Object.assign(c, { seen: false, reps: 0, interval: 0, due: 0, ease: 2.3, streak: 0, inWrong: false, weak: false })); save(); render(); toast('已重置'); }, true); break; }
-    case 'del-deck': { const d = deck(route.id); askConfirm('删除牌组', `删除“${d.name}”与其中 ${d.cards.length} 张卡片？此操作无法恢复。`, '删除', () => { store.decks = store.decks.filter(x => x.id !== d.id); save(); go('home'); }, true); break; }
+    case 'rename': { const d = deck(route.id); askText('重命名牌組', d.name, n => { if (n && n.trim()) { d.name = n.trim(); save(); render(); } }); break; }
+    case 'reset': { askConfirm('重置進度', '重置這個牌組的所有學習進度？（題目不會刪除）', '重置', () => { deck(route.id).cards.forEach(c => Object.assign(c, { seen: false, reps: 0, interval: 0, due: 0, ease: 2.3, streak: 0, inWrong: false, weak: false })); save(); render(); toast('已重置'); }, true); break; }
+    case 'del-deck': { const d = deck(route.id); askConfirm('刪除牌組', `刪除“${d.name}”與其中 ${d.cards.length} 張卡片？此操作無法還原。`, '刪除', () => { store.decks = store.decks.filter(x => x.id !== d.id); save(); go('home'); }, true); break; }
     case 'copy-prompt': copyText(PROMPT); break;
     case 'do-import': {
       const msg = $('#imp-msg'), text = $('#imp-text').value;
-      if (!text.trim()) { msg.className = 'msg bad-t'; msg.textContent = '请先粘贴内容或选择文件'; return; }
+      if (!text.trim()) { msg.className = 'msg bad-t'; msg.textContent = '請先粘貼內容或選擇檔案'; return; }
       try {
         const typed = $('#imp-name').value.trim(), picked = $('#imp-deck').value;
         const pd = picked ? deck(picked) : null;
         const target = typed || (pd ? pd.name : '');
-        let decks = toDecks(parseJSON(text), target || '未分类');
+        let decks = toDecks(parseJSON(text), target || '未分類');
         if (target) decks = [{ name: target, cards: decks.flatMap(d => d.cards) }];
         const total = decks.reduce((n, d) => n + d.cards.length, 0);
-        if (!total) throw new Error('没有找到有效的卡片（每张需要 q 与 a）。');
+        if (!total) throw new Error('沒有找到有效的卡片（每張需要 q 與 a）。');
         const r = mergeDecks(decks);
         if (target) { const td = store.decks.find(x => x.name === target); store.settings.importTarget = td ? td.id : ''; save(); }
         render();
         const m = $('#imp-msg');
-        if (m) { m.className = 'msg ok-t'; m.textContent = `导入完成${target ? `，已放进“${target}”` : ''}：新增 ${r.added} 张${r.skipped ? `，跳过重复 ${r.skipped} 张` : ''}${r.newDecks ? `，创建 ${r.newDecks} 个牌组` : ''}。`; }
+        if (m) { m.className = 'msg ok-t'; m.textContent = `匯入完成${target ? `，已放進“${target}”` : ''}：新增 ${r.added} 張${r.skipped ? `，跳過重複 ${r.skipped} 張` : ''}${r.newDecks ? `，建立 ${r.newDecks} 個牌組` : ''}。`; }
       } catch (err) { msg.className = 'msg bad-t'; msg.textContent = err.message; }
       break;
     }
     case 'sample': {
-      const r = mergeDecks([{ name: '示例牌组', cards: [
-        { q: '光合作用发生在细胞的哪个构造？', a: '叶绿体', wrong: ['粒线体', '细胞核', '核糖体'], note: '叶绿体含有叶绿素，能吸收光能。' },
-        { q: '水的化学式是什么？', a: 'H₂O', wrong: ['CO₂', 'NaCl'] },
-        { q: '台湾最高的山是？', a: '玉山', note: '海拔约 3,952 米。' },
-        { q: '一年有几个节气？', a: '24 个' },
-        { q: '光在真空中的速度约为每秒多少公里？', a: '约 30 万公里' }
+      const r = mergeDecks([{ name: '示例牌組', cards: [
+        { q: '光合作用發生在細胞的哪個構造？', a: '葉綠體', wrong: ['粒線體', '細胞核', '核糖體'], note: '葉綠體含有葉綠素，能吸收光能。' },
+        { q: '水的化學式是什麼？', a: 'H₂O', wrong: ['CO₂', 'NaCl'] },
+        { q: '台灣最高的山是？', a: '玉山', note: '海拔約 3,952 米。' },
+        { q: '一年有幾個節氣？', a: '24 個' },
+        { q: '光在真空中的速度約為每秒多少公里？', a: '約 30 萬公里' }
       ].map(normCard) }]);
-      toast(r.added ? '已加载示例' : '示例已存在'); go('home'); break;
+      toast(r.added ? '已加載示例' : '示例已存在'); go('home'); break;
     }
     case 'export-file': {
       const json = JSON.stringify({ app: 'review-cards', version: 2, groups: store.groups, decks: store.decks }, null, 1);
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-      a.download = 'review-backup-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('已生成备份文件'); break;
+      a.download = 'review-backup-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('已生成備份檔案'); break;
     }
     case 'export-copy': copyText(JSON.stringify({ app: 'review-cards', version: 2, groups: store.groups, decks: store.decks })); break;
     case 'do-restore': {
       const msg = $('#res-msg'); let decks, rg = [];
-      try { const ro = parseJSON($('#res-text').value); decks = toDecks(ro, '未分类'); if (ro && Array.isArray(ro.groups)) rg = ro.groups.filter(x => typeof x === 'string' && x); }
+      try { const ro = parseJSON($('#res-text').value); decks = toDecks(ro, '未分類'); if (ro && Array.isArray(ro.groups)) rg = ro.groups.filter(x => typeof x === 'string' && x); }
       catch (err) { msg.className = 'msg bad-t'; msg.textContent = err.message; break; }
-      askConfirm('还原备份', `将以备份内容替换目前数据（${decks.length} 个牌组）。确定？`, '还原', () => {
+      askConfirm('還原備份', `將以備份內容替換目前資料（${decks.length} 個牌組）。確定？`, '還原', () => {
         store.decks = decks.map(d => Object.assign({ id: d.id || uid(), name: d.name, cards: d.cards }, d.group ? { group: d.group } : {})); store.groups = rg; store.collapsed = {}; syncGroups(); save();
-        const m = $('#res-msg'); if (m) { m.className = 'msg ok-t'; m.textContent = `已还原 ${decks.length} 个牌组。`; }
+        const m = $('#res-msg'); if (m) { m.className = 'msg ok-t'; m.textContent = `已還原 ${decks.length} 個牌組。`; }
       }, true);
       break;
     }
-    case 'clear-all': askConfirm('清除全部数据', '清除全部牌组与进度？此操作无法恢复。' + (store.settings.sync && store.settings.sync.on ? '已开启同步：云端的数据下次同步时也会被清除。' : ''), '继续', () => askConfirm('再确认一次', '真的要清除吗？建议先备份。', '全部清除', () => { store.decks = []; store.groups = []; store.collapsed = {}; save(); go('home'); }, true), true); break;
+    case 'clear-all': askConfirm('清除全部資料', '清除全部牌組與進度？此操作無法還原。' + (store.settings.sync && store.settings.sync.on ? '已開啟同步：雲端的資料下次同步時也會被清除。' : ''), '繼續', () => askConfirm('再確認一次', '真的要清除嗎？建議先備份。', '全部清除', () => { store.decks = []; store.groups = []; store.collapsed = {}; save(); go('home'); }, true), true); break;
   }
 });
 
 const THEMES = ['indigo', 'rila', 'milk'];
-const THEME_NAMES = { indigo: '靛蓝', rila: '拉拉熊', milk: '草莓牛奶' };
+const THEME_NAMES = { indigo: '靛藍', rila: '拉拉熊', milk: '草莓牛奶' };
 function applyTheme() {
   const t = 'rila';
   document.documentElement.dataset.theme = t;
