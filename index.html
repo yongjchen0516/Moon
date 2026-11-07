@@ -898,6 +898,13 @@ function viewBackup() {
   <h2>清除</h2><button class="pill danger" data-act="clear-all">清除全部資料</button>`;
 }
 
+function sheetRefresh() {   // update the settings sheet in place: no re-animation, scroll position kept
+  const old = document.querySelector('.overlay .sheet');
+  if (!old || !sheet) return render();
+  const tmp = document.createElement('div'); tmp.innerHTML = sheetHTML();
+  const nw = tmp.querySelector('.sheet'), st = old.scrollTop;
+  old.innerHTML = nw.innerHTML; old.scrollTop = st;
+}
 function render() {
   let h;
   switch (route.name) {
@@ -960,12 +967,12 @@ document.addEventListener('click', e => {
     case 'sheet': openSheet(t.dataset.id); break;
     case 'quick': startSession({ scope: 'all', filter: 'due', mode: store.settings.mode, count: store.settings.count, dir: store.settings.dir || 'f', tts: store.settings.tts || 'auto' }); break;
     case 'adjust': openSheet('all'); break;
-    case 'set-filter': sheet.filter = t.dataset.v; render(); break;
-    case 'set-mode': sheet.mode = t.dataset.v; render(); break;
-    case 'set-count': sheet.count = +t.dataset.v; render(); break;
-    case 'set-order': sheet.order = t.dataset.v; render(); break;
-    case 'set-dir': sheet.dir = t.dataset.v; render(); break;
-    case 'set-tts': sheet.tts = t.dataset.v; render(); break;
+    case 'set-filter': sheet.filter = t.dataset.v; sheetRefresh(); break;
+    case 'set-mode': sheet.mode = t.dataset.v; sheetRefresh(); break;
+    case 'set-count': sheet.count = +t.dataset.v; sheetRefresh(); break;
+    case 'set-order': sheet.order = t.dataset.v; sheetRefresh(); break;
+    case 'set-dir': sheet.dir = t.dataset.v; sheetRefresh(); break;
+    case 'set-tts': sheet.tts = t.dataset.v; sheetRefresh(); break;
     case 'speak': { const it = S && S.queue[S.idx], f = it && find(it.did, it.cid); if (f) { const wordSide = (t.dataset.w === 'q') !== S.rev; speak(wordSide ? (f.c.rd || f.c.q) : f.c.a, wordSide ? 'q' : 'a', deck(it.did)); } break; }
     case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count, order: sheet.order, dir: sheet.dir, tts: sheet.tts }); break;
     case 'again-round': startSession(S.cfg); break;
