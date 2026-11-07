@@ -196,6 +196,9 @@ label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
 .at{font:600 26px/1.65 var(--serif);color:var(--acc);letter-spacing:.02em}
 .nt{font-size:15px;line-height:1.75;color:var(--sub)}
 .hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:13px;color:var(--sub);opacity:.8}
+.rd{font:500 20px/1.6 var(--serif);color:var(--sub);letter-spacing:.06em;margin-top:2px}
+.spk{position:absolute;top:10px;left:12px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--sub);z-index:2}
+.spk:active{background:var(--line)}
 .tags{position:absolute;top:14px;right:16px;display:flex;gap:6px}
 .badge{display:inline-block;font-size:12px;line-height:1.5;padding:1px 9px;border-radius:10px;background:var(--acc-soft);color:var(--acc)}
 .badge.w{background:var(--warn-soft);color:var(--warn)}
@@ -274,6 +277,15 @@ const PROMPT = `請根據我附上的筆記照片，產生複習用題目卡片�
 - 照片看不清楚的地方不要猜，請跳過
 - 不要編造照片中沒有的內容`;
 
+const PROMPT_VOCAB = `請根據我附上的單詞清單或筆記照片，產生外語單字卡。
+只輸出一個 JSON 程式碼區塊，不要有其他說明文字，格式如下：
+{"decks":[{"name":"牌組名稱","type":"vocab","cards":[{"q":"單字（日文請写漢字或原文写法）","rd":"讀音（假名；沒有漢字時可留空）","a":"簡短中文意思","wrong":["相似單字的意思1","意思2","意思3"],"note":"例句\\n例句翻譯"}]}]}
+規則：
+- 一張卡一個單字；a 只写最常用的 1～2 個意思，使用繁體中文（台灣用語）
+- wrong 要選字形、讀音或意思容易混淆的其他單字的中文意思
+- 例句要簡單自然，並附翻譯
+- 看不清楚的單字不要猜，請跳過`;
+
 let store = { decks: [], groups: [], collapsed: {}, tomb: {}, settings: { filter: 'due', mode: 'flip', count: 20, theme: 'indigo' } };
 let storageOK = true;
 let route = { name: 'home' };
@@ -298,6 +310,7 @@ const ICONS = {
   check: '<path d="M5.5 12.5l4.2 4.2L18.5 8"/>',
   list: '<path d="M8.5 6.5H20M8.5 12H20M8.5 17.5H20"/><path d="M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" stroke-width="2.6"/>',
   chev: '<path d="M9 6l6 6-6 6"/>',
+  speaker: '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M15.5 9a4 4 0 010 6"/><path d="M18 6.5a7.5 7.5 0 010 11"/>',
   more: '<path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/>',
   palette: '<path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a3.5 3.5 0 003.5-3.5C20.5 7 16.8 3.5 12 3.5z"/><path d="M7.5 11h.01M10 7.5h.01M14.5 7.5h.01" stroke-width="2.4"/>'
 };
@@ -356,7 +369,7 @@ function normCard(c) {
   if (typeof wrong === 'string') wrong = wrong.split('\n');
   wrong = Array.isArray(wrong) ? wrong.map(x => String(x).trim()).filter(x => x && x !== a) : [];
   const n = (v, d) => (v !== null && v !== undefined && v !== '' && Number.isFinite(+v)) ? +v : d;
-  return { id: c.id || uid(), q, a, wrong: [...new Set(wrong)], note: String(c.note ?? '').trim(), weak: !!c.weak, inWrong: !!c.inWrong, known: !!c.known, streak: n(c.streak, 0), ease: n(c.ease, 2.3), interval: n(c.interval, 0), due: n(c.due, 0), seen: !!c.seen, reps: n(c.reps, 0), lastAt: n(c.lastAt, 0) };
+  return { id: c.id || uid(), rd: String(c.rd ?? c.reading ?? c.kana ?? '').trim(), q, a, wrong: [...new Set(wrong)], note: String(c.note ?? '').trim(), weak: !!c.weak, inWrong: !!c.inWrong, known: !!c.known, streak: n(c.streak, 0), ease: n(c.ease, 2.3), interval: n(c.interval, 0), due: n(c.due, 0), seen: !!c.seen, reps: n(c.reps, 0), lastAt: n(c.lastAt, 0) };
 }
 function parseJSON(text) {
   let t = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
@@ -371,13 +384,13 @@ function toDecks(obj, fallback) {
   else if (obj && Array.isArray(obj.decks)) decks = obj.decks;
   else if (obj && Array.isArray(obj.cards)) decks = [obj];
   else throw new Error('找不到 decks 或 cards 字段。');
-  return decks.map(d => ({ id: d.id, group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌組').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
+  return decks.map(d => ({ id: d.id, type: d.type === 'vocab' ? 'vocab' : '', group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌組').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
 }
 function mergeDecks(decks) {
   let added = 0, skipped = 0, newDecks = 0;
   for (const d of decks) {
     let t = store.decks.find(x => x.name === d.name);
-    if (!t) { t = { id: uid(), name: d.name, cards: [] }; if (d.group) t.group = d.group; store.decks.push(t); newDecks++; }
+    if (!t) { t = { id: uid(), name: d.name, cards: [] }; if (d.group) t.group = d.group; if (d.type) t.type = d.type; store.decks.push(t); newDecks++; }
     const keys = new Set(t.cards.map(c => key(c.q)));
     for (const c of d.cards) { const k = key(c.q); if (keys.has(k)) { skipped++; continue; } keys.add(k); t.cards.push(c); added++; }
   }
@@ -418,29 +431,31 @@ function startSession(cfg) {
   const queue = buildQueue(cfg.scope, cfg.filter, cfg.count);
   if (!queue.length) { toast('沒有符合的卡片'); return; }
   S = { cfg, queue, idx: 0, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true };
-  store.settings = { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode, count: cfg.count }; save();
+  Object.assign(store.settings, { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode, count: cfg.count, dir: (deck(cfg.scope) && deck(cfg.scope).type === 'vocab') ? (store.settings.dir || 'f') : (cfg.dir || 'f'), tts: cfg.tts || 'auto' }); save();
   enter();
   go('study');
 }
 function enter() {
   while (S.queue[S.idx]) { const f0 = find(S.queue[S.idx].did, S.queue[S.idx].cid); if (f0 && (S.cfg.filter === 'known' || !f0.c.known)) break; S.idx++; }
   S.flipped = false; S.picked = null; S.opts = null; S.easy = false; S.anim = true;
+  S.rev = S.cfg.dir === 'r' || (S.cfg.dir === 'x' && Math.random() < 0.5);
   const it = S.queue[S.idx];
-  if (it && S.cfg.mode === 'mcq') { const f = find(it.did, it.cid); S.opts = makeOptions(it.did, f.c); }
+  if (it && S.cfg.mode === 'mcq') { const f = find(it.did, it.cid); S.opts = makeOptions(it.did, f.c, S.rev); }
 }
-function makeOptions(did, c) {
-  let wr = shuffle((c.wrong || []).filter(w => w && w !== c.a)).slice(0, 3);
+function makeOptions(did, c, rev) {
+  const ans = rev ? c.q : c.a, side = x => rev ? x.q : x.a;
+  let wr = rev ? [] : shuffle((c.wrong || []).filter(w => w && w !== c.a)).slice(0, 3);
   if (wr.length < 3) {
-    const seen = new Set([c.a, ...wr]);
+    const seen = new Set([ans, ...wr]);
     const d = deck(did);
     const pools = [d.cards, ...store.decks.filter(x => x.id !== did).map(x => x.cards)];
     for (const pool of pools) {
-      for (const o of shuffle(pool.map(x => x.a))) { if (wr.length >= 3) break; if (!seen.has(o)) { seen.add(o); wr.push(o); } }
+      for (const o of shuffle(pool.map(side))) { if (wr.length >= 3) break; if (!seen.has(o)) { seen.add(o); wr.push(o); } }
       if (wr.length >= 3) break;
     }
   }
   if (wr.length < 1) return null;
-  return shuffle([c.a, ...wr]);
+  return shuffle([ans, ...wr]);
 }
 function advance(r) {
   const it = S.queue[S.idx], f = find(it.did, it.cid);
@@ -505,7 +520,7 @@ function viewHome() {
   h += `</section>`;
   h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">全部混合</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
   h = pick ? hh + `<p class="sub" style="margin:4px 4px 0">點選要複習的牌組，也可以點群組一次選整組</p>` : hh + h + `<button class="pill" style="width:100%;justify-content:center;min-height:50px;margin:2px 0 6px;color:var(--acc);font-weight:600" data-act="pick-start">${ic('check')}選擇牌組複習</button>`;
-  const deckRow = d => { const c = counts(d.id); if (pick) { const on = pick.has(d.id); return `<div class="deck"><button class="deck-main pk${on ? ' on' : ''}" data-act="pick-toggle" data-id="${d.id}" aria-pressed="${on}"><span class="chk-c" style="${on ? 'background:var(--acc);border-color:var(--acc);color:var(--acc-ink)' : ''}">${ic('check')}</span><div class="info"><div class="name">${esc(d.name)}</div>${statsHTML(c, true)}</div></button></div>`; } return `<div class="deck"><button class="deck-main" data-act="sheet" data-id="${d.id}">${ringHTML(c)}<div class="info"><div class="name">${esc(d.name)}</div>${statsHTML(c, true)}</div></button><button class="pill icon flat" data-act="manage" data-id="${d.id}" aria-label="管理“${esc(d.name)}”">${ic('more')}</button></div>`; };
+  const deckRow = d => { const c = counts(d.id); if (pick) { const on = pick.has(d.id); return `<div class="deck"><button class="deck-main pk${on ? ' on' : ''}" data-act="pick-toggle" data-id="${d.id}" aria-pressed="${on}"><span class="chk-c" style="${on ? 'background:var(--acc);border-color:var(--acc);color:var(--acc-ink)' : ''}">${ic('check')}</span><div class="info"><div class="name">${esc(d.name)}${d.type === 'vocab' ? '<span class="badge" style="margin-left:8px;vertical-align:middle">單字</span>' : ''}</div>${statsHTML(c, true)}</div></button></div>`; } return `<div class="deck"><button class="deck-main" data-act="sheet" data-id="${d.id}">${ringHTML(c)}<div class="info"><div class="name">${esc(d.name)}${d.type === 'vocab' ? '<span class="badge" style="margin-left:8px;vertical-align:middle">單字</span>' : ''}</div>${statsHTML(c, true)}</div></button><button class="pill icon flat" data-act="manage" data-id="${d.id}" aria-label="管理“${esc(d.name)}”">${ic('more')}</button></div>`; };
   for (const g of store.groups) {
     const ds = store.decks.filter(d => d.group === g), gc = counts('g:' + g), col = !!store.collapsed[g];
     if (pick) { const all_ = ds.length && ds.every(d => pick.has(d.id)); h += `<div class="grp"><button class="grp-h${all_ ? ' on' : ''}" data-act="pick-grp" data-g="${esc(g)}"><span class="chk-c">${ic('check')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 個牌組</span></button></div><div class="grp-body">${ds.map(deckRow).join('')}</div>`; continue; }
@@ -535,6 +550,9 @@ function sheetHTML() {
     <div class="opts">${frow('due', '待複習與新卡')}${frow('weak', '不熟')}${frow('wrong', '錯題本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
     <div class="sub">方式</div>
     <div class="seg">${seg('set-mode', 'flip', sh.mode, '翻卡')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}</div>
+    <div class="sub">方向（反向：看答案，回想問題）</div>
+    <div class="seg">${seg('set-dir', 'f', sh.dir, '正向')}${seg('set-dir', 'r', sh.dir, '反向')}${seg('set-dir', 'x', sh.dir, '隨機')}</div>
+    ${TTS_OK ? `<div class="sub">朗讀語言（卡片左上角的喇叭）</div><div class="seg">${seg('set-tts', 'auto', sh.tts, '自動')}${seg('set-tts', 'ja-JP', sh.tts, '日文')}${seg('set-tts', 'en-US', sh.tts, '英文')}${seg('set-tts', 'zh-TW', sh.tts, '中文')}</div>` : ''}
     <div class="sub">每輪張數</div>
     <div class="seg">${seg('set-count', 10, sh.count, '10')}${seg('set-count', 20, sh.count, '20')}${seg('set-count', 50, sh.count, '50')}${seg('set-count', 0, sh.count, '不限')}</div>
     <button class="btn" data-act="start" ${n ? '' : 'disabled'}>${n ? `開始複習（${run} 張）` : '這個範圍沒有卡片'}</button>
@@ -545,34 +563,50 @@ function ratesHTML(c) {
   return `<div class="rates">${[0, 1, 2, 3].map(r => `<button class="rate r${r}" data-act="rate" data-r="${r}">${RATE_LABELS[r]}<small>${preview(c, r)}</small></button>`).join('')}</div>`;
 }
 
+const TTS_OK = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+const spk = w => TTS_OK ? `<button class="spk" data-act="speak" data-w="${w}" aria-label="朗讀">${ic('speaker')}</button>` : '';
+function ttsLang(txt, pref) {
+  if (pref && pref !== 'auto') return pref;
+  if (/[\u3040-\u30ff]/.test(txt)) return 'ja-JP';
+  if (/[a-zA-Z]/.test(txt) && !/[\u4e00-\u9fff]/.test(txt)) return 'en-US';
+  return 'zh-TW';
+}
+function speak(txt) {
+  if (!TTS_OK) return;
+  const s = (String(txt).split(/[｜|]/)[0] || '').trim() || String(txt);
+  const u = new SpeechSynthesisUtterance(s); u.lang = ttsLang(s, S && S.cfg && S.cfg.tts); u.rate = 0.9;
+  try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+}
 function viewStudy() {
   const it = S.queue[S.idx];
   if (!it) return viewDone();
   const { c } = find(it.did, it.cid);
+  const fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
   const mode = (S.cfg.mode === 'mcq' && S.opts) ? 'mcq' : 'flip';
   const pct = Math.round(S.idx / S.queue.length * 100);
   const enterCls = S.anim ? ' enter' : ''; S.anim = false;
   let h = `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>`;
-  const tags = (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.seen ? '' : '<span class="badge">新卡</span>');
+  const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.inWrong ? '<span class="badge b">錯題</span>' : '') + (c.seen ? '' : '<span class="badge">新卡</span>');
   if (mode === 'mcq') {
-    h += `<div class="stage${enterCls}"><div class="face solo"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div></div>`;
+    h += `<div class="stage${enterCls}"><div class="face solo">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div></div>`;
     S.opts.forEach((o, i) => {
       let cls = 'opt', k = String.fromCharCode(65 + i);
-      if (S.picked !== null) { if (o === c.a) { cls += ' ok'; k = ic('check'); } else if (i === S.picked) { cls += ' bad'; k = '×'; } }
+      if (S.picked !== null) { if (o === fa) { cls += ' ok'; k = ic('check'); } else if (i === S.picked) { cls += ' bad'; k = '×'; } }
       h += `<button class="${cls}" data-act="pick" data-i="${i}" ${S.picked !== null ? 'disabled' : ''}><span class="k">${k}</span><span class="ot">${esc(o)}</span></button>`;
     });
     h += `</div>`;
     if (S.picked !== null) {
-      const ok = S.opts[S.picked] === c.a;
+      const ok = S.opts[S.picked] === fa;
       h += `<div class="fb ${ok ? 'ok-t' : 'bad-t'}">${ok ? '答對了' : '答錯了，正確答案已標示'}</div>`;
+      if (c.rd) h += `<div class="rd" style="text-align:center;margin:2px 0 4px">${esc(c.rd)}</div>`;
       if (c.note) h += `<div class="card nt" style="white-space:pre-wrap;margin-top:6px">${esc(c.note)}</div>`;
       if (ok) h += `<div style="margin:10px 0 14px"><button class="chip ${S.easy ? 'on' : ''}" data-act="easy">這題很簡單</button></div>`;
       h += `<button class="btn" data-act="next">下一題</button>`;
     }
   } else {
     h += `<div class="fl-wrap"><div class="stage${enterCls}"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
-      <div class="face front" data-act="flip"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div><div class="hint">點一下翻面</div></div>
-      <div class="face back"><div class="qs">${esc(c.q)}</div><div class="hair"></div><div class="at">${esc(c.a)}</div>${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
+      <div class="face front" data-act="flip">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div><div class="hint">點一下翻面</div></div>
+      <div class="face back">${spk('a')}<div class="qs">${esc(fq)}</div>${S.rev ? '' : rdH}<div class="hair"></div><div class="at">${esc(fa)}</div>${S.rev ? rdH : ''}${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
     </div></div></div>
     <div id="ctl">${S.flipped ? ratesHTML(c) : `<button class="btn" data-act="flip">顯示答案</button>`}</div></div>`;
   }
@@ -631,8 +665,8 @@ function viewDeck() {
   h += `<div class="list" id="list">`;
   if (!list.length) h += `<p class="sub center" style="padding:16px 0">還沒有卡片</p>`;
   for (const { d: dk, c } of list) {
-    const sx = esc((c.q + ' ' + c.a + (isAll ? ' ' + dk.name : '')).toLowerCase());
-    const sub = isAll ? `<small>${esc(dk.name)}</small>` : '';
+    const sx = esc((c.q + ' ' + (c.rd || '') + ' ' + c.a + (isAll ? ' ' + dk.name : '')).toLowerCase());
+    const sub = (isAll ? `<small>${esc(dk.name)}</small>` : '') + (dk.type === 'vocab' ? `<small>${c.rd ? esc(c.rd) + ' · ' : ''}${esc(c.a)}</small>` : '');
     const common = `data-did="${dk.id}" data-cid="${c.id}" data-s="${sx}" data-t="${cardTags(c)}"`;
     if (sel) h += `<button class="item${c.known ? ' known' : ''}${sel.ids.has(c.id) ? ' sel' : ''}" data-act="sel-toggle" ${common}><span class="chk-c">${ic('check')}</span><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
     else h += `<button class="item${c.known ? ' known' : ''}" data-act="edit" ${common}><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
@@ -641,7 +675,7 @@ function viewDeck() {
   if (sel) {
     h += `<div style="height:230px"></div><div class="selbar"><div class="selin"><div class="selrow"><span id="selcount" class="sub">已選 ${sel.ids.size} 張</span><button class="pill flat" data-act="sel-all">全選</button></div><div class="row"><button class="btn" data-act="bulk-known">標為已熟悉</button><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bulk-unknown">取消已熟悉</button></div><div class="row" style="margin-top:8px"><button class="pill" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-move">移到其他牌組</button><button class="pill danger" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-del">刪除</button></div></div></div>`;
   } else if (!isAll) {
-    h += `<h2>牌組設定</h2><div class="row" style="flex-wrap:wrap"><button class="pill" data-act="rename">重命名</button><button class="pill" data-act="deck-group">移到群組</button><button class="pill" data-act="reset">重置進度</button><button class="pill danger" data-act="del-deck">刪除牌組</button></div>`;
+    h += `<h2>牌組設定</h2><div class="row" style="flex-wrap:wrap"><button class="pill" data-act="rename">重命名</button><button class="pill" data-act="toggle-vocab">${d.type === 'vocab' ? '改為一般牌組' : '改為單字牌組'}</button><button class="pill" data-act="deck-group">移到群組</button><button class="pill" data-act="reset">重置進度</button><button class="pill danger" data-act="del-deck">刪除牌組</button></div>`;
   }
   return h;
 }
@@ -679,12 +713,14 @@ function doMove(tid) {
 function modalHTML() {
   let c = { q: '', a: '', wrong: [], note: '' };
   if (modal.cid) { const f = find(modal.did, modal.cid); if (f) c = f.c; }
+  const vd = deck(modal.did), vocab = !!((vd && vd.type === 'vocab') || c.rd);
   return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div>
     <h2 class="t">${modal.cid ? '編輯卡片' : '新增卡片'}</h2>
-    <label class="f">問題</label><textarea id="m-q">${esc(c.q)}</textarea>
-    <label class="f">正確答案</label><textarea id="m-a" style="min-height:72px">${esc(c.a)}</textarea>
+    <label class="f">${vocab ? '單字' : '問題'}</label><textarea id="m-q">${esc(c.q)}</textarea>
+    ${vocab ? `<label class="f">讀音（可留空）</label><textarea id="m-rd" style="min-height:52px">${esc(c.rd || '')}</textarea>` : ''}
+    <label class="f">${vocab ? '意思' : '正確答案'}</label><textarea id="m-a" style="min-height:72px">${esc(c.a)}</textarea>
     <label class="f">干擾選項（一行一個，可留空，選擇題會自動補）</label><textarea id="m-w" style="min-height:92px">${esc((c.wrong || []).join('\n'))}</textarea>
-    <label class="f">補充說明（可留空）</label><textarea id="m-n" style="min-height:72px">${esc(c.note || '')}</textarea>
+    <label class="f">${vocab ? '例句（可留空）' : '補充說明（可留空）'}</label><textarea id="m-n" style="min-height:72px">${esc(c.note || '')}</textarea>
     <label class="chk"><input type="checkbox" id="m-k" ${c.known ? 'checked' : ''}><span>已熟悉（不再出現在複習中）</span></label>
     <div class="row" style="margin-top:18px"><button class="btn" data-act="save-card">儲存</button>${modal.cid ? '<button class="pill danger" data-act="del-card" style="min-height:54px;border-radius:16px">刪除</button>' : ''}<button class="pill" data-act="close" style="min-height:54px;border-radius:16px">取消</button></div>
   </div></div>`;
@@ -712,6 +748,8 @@ function viewImport() {
   </div>
   <div class="card"><div class="row" style="justify-content:space-between"><b>給 AI 的提示詞</b><button class="pill" data-act="copy-prompt">複制</button></div>
   <pre>${esc(PROMPT)}</pre><p class="sub" style="margin:0">拍照時一起貼給 AI。重複匯入同一牌組時，相同的題目會自動跳過。</p></div>
+  <div class="card"><div class="row" style="justify-content:space-between"><b>給 AI 的提示詞（單字版）</b><button class="pill" data-act="copy-prompt-vocab">複制</button></div>
+  <pre>${esc(PROMPT_VOCAB)}</pre><p class="sub" style="margin:0">匯入後會自動建立“單字牌組”，帶有讀音與例句。</p></div>
   <button class="pill" style="width:100%;justify-content:center;min-height:50px" data-act="sample">加載示例牌組試用</button>`;
 }
 
@@ -724,14 +762,14 @@ let gTok = null, gExp = 0, gTC = null, gOk = null, gErr = null, syncing = false,
 function seedHashes() {
   hmap = new Map(); known = new Set();
   for (const d of store.decks) {
-    known.add(d.id); hmap.set(d.id, JSON.stringify([d.name, d.group || '']));
+    known.add(d.id); hmap.set(d.id, JSON.stringify([d.name, d.group || '', d.type || '']));
     for (const c of d.cards) { known.add(c.id); const { upd, ...r } = c; hmap.set(c.id, JSON.stringify(r)); }
   }
 }
 function stamp() {            // mark changed items with a timestamp, remember deletions
   const now = Date.now(), cur = new Set();
   for (const d of store.decks) {
-    cur.add(d.id); const dh = JSON.stringify([d.name, d.group || '']);
+    cur.add(d.id); const dh = JSON.stringify([d.name, d.group || '', d.type || '']);
     if (hmap.get(d.id) !== dh) { d.upd = now; hmap.set(d.id, dh); }
     for (const c of d.cards) {
       cur.add(c.id); const { upd, ...r } = c, h = JSON.stringify(r);
@@ -746,7 +784,7 @@ function mergeRemote(r) {
   const T = Object.assign({}, r.tomb || {});
   for (const [k, v] of Object.entries(store.tomb)) T[k] = Math.max(T[k] || 0, v);
   const dk = new Map(), cd = new Map();
-  const putD = d => { const o = dk.get(d.id); if (!o || (d.upd || 0) > (o.upd || 0)) dk.set(d.id, { id: d.id, name: d.name, group: d.group || '', upd: d.upd || 0 }); };
+  const putD = d => { const o = dk.get(d.id); if (!o || (d.upd || 0) > (o.upd || 0)) dk.set(d.id, { id: d.id, name: d.name, group: d.group || '', type: d.type || '', upd: d.upd || 0 }); };
   const putC = (c, did) => { const o = cd.get(c.id); if (!o || (c.upd || 0) > (o.c.upd || 0)) cd.set(c.id, { c, did }); };
   const lo = store.decks, ro = (r.decks || []).filter(d => d && d.id && Array.isArray(d.cards));
   lo.forEach(d => { putD(d); d.cards.forEach(c => putC(c, d.id)); });
@@ -763,7 +801,7 @@ function mergeRemote(r) {
   });
   lo.forEach(addFrom); ro.forEach(addFrom);
   const cut = Date.now() - 90 * 864e5; for (const k of Object.keys(T)) if (T[k] < cut) delete T[k];
-  const decks = [...out.values()].map(d => { const x = { id: d.id, name: d.name, cards: d.cards, upd: d.upd }; if (d.group) x.group = d.group; return x; });
+  const decks = [...out.values()].map(d => { const x = { id: d.id, name: d.name, cards: d.cards, upd: d.upd }; if (d.group) x.group = d.group; if (d.type) x.type = d.type; return x; });
   const order = []; lo.concat(ro).forEach(d => { if (out.has(d.id) && !order.includes(d.id)) order.push(d.id); });
   decks.sort((a, b) => (order.indexOf(a.id) < 0 ? 999 : order.indexOf(a.id)) - (order.indexOf(b.id) < 0 ? 999 : order.indexOf(b.id)));
   store.decks = decks; store.tomb = T; syncGroups(); seedHashes();
@@ -867,8 +905,8 @@ function render() {
 }
 
 /* ---------- in-page dialogs (no native prompt/confirm) ---------- */
-function askText(title, value, cb) {
-  dlg = { type: 'text', title, value: value || '', cb };
+function askText(title, value, cb, chk) {
+  dlg = { type: 'text', title, value: value || '', cb, chk };
   render();
   const i = $('#dlg-in'); if (i) { i.focus(); i.select(); }
 }
@@ -878,7 +916,7 @@ function askConfirm(title, msg, okLabel, cb, danger) {
 }
 function dlgHTML() {
   const d = dlg;
-  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">取消</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '確定' : d.ok)}</button></div></div></div>`;
+  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">${d.chk ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="dlg-chk"><span>${esc(d.chk)}</span></label>` : ''}` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">取消</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '確定' : d.ok)}</button></div></div></div>`;
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'dlg-in') { e.preventDefault(); const b = document.querySelector('[data-act=dlg-ok]'); if (b) b.click(); }
@@ -896,7 +934,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'search') { listQuery = e.target.value; applyListFilter(); }
 });
-function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: store.settings.mode, count: store.settings.count }; render(); }
+function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: store.settings.mode, count: store.settings.count, dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
 
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
@@ -907,12 +945,15 @@ document.addEventListener('click', e => {
   switch (act) {
     case 'go': go(t.dataset.r); break;
     case 'sheet': openSheet(t.dataset.id); break;
-    case 'quick': startSession({ scope: 'all', filter: 'due', mode: store.settings.mode, count: store.settings.count }); break;
+    case 'quick': startSession({ scope: 'all', filter: 'due', mode: store.settings.mode, count: store.settings.count, dir: store.settings.dir || 'f', tts: store.settings.tts || 'auto' }); break;
     case 'adjust': openSheet('all'); break;
     case 'set-filter': sheet.filter = t.dataset.v; render(); break;
     case 'set-mode': sheet.mode = t.dataset.v; render(); break;
     case 'set-count': sheet.count = +t.dataset.v; render(); break;
-    case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count }); break;
+    case 'set-dir': sheet.dir = t.dataset.v; render(); break;
+    case 'set-tts': sheet.tts = t.dataset.v; render(); break;
+    case 'speak': { const it = S && S.queue[S.idx], f = it && find(it.did, it.cid); if (f) { const wordSide = (t.dataset.w === 'q') !== S.rev; speak(wordSide ? (f.c.rd || f.c.q) : f.c.a); } break; }
+    case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count, dir: sheet.dir, tts: sheet.tts }); break;
     case 'again-round': startSession(S.cfg); break;
     case 'manage': go('deck', t.dataset.id); break;
     case 'flip': {
@@ -925,7 +966,7 @@ document.addEventListener('click', e => {
     case 'rate': advance(+t.dataset.r); break;
     case 'pick': S.picked = +t.dataset.i; render(); break;
     case 'easy': S.easy = !S.easy; render(); break;
-    case 'next': { const it = S.queue[S.idx], f = find(it.did, it.cid); const ok = S.opts[S.picked] === f.c.a; advance(ok ? (S.easy ? 3 : 2) : 0); break; }
+    case 'next': { const it = S.queue[S.idx], f = find(it.did, it.cid); const ok = S.opts[S.picked] === (S.rev ? f.c.q : f.c.a); advance(ok ? (S.easy ? 3 : 2) : 0); break; }
     case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已標記為不熟' : '已取消標記'); } break; }
     case 'known': {
       const it = S.queue[S.idx], f = it && find(it.did, it.cid); if (!f) break;
@@ -977,16 +1018,16 @@ document.addEventListener('click', e => {
       applyListFilter(); break;
     }
     case 'dlg-cancel': dlg = null; render(); break;
-    case 'dlg-ok': { const d = dlg; const v = d.type === 'text' ? $('#dlg-in').value : null; dlg = null; render(); d.cb(v); break; }
+    case 'dlg-ok': { const d = dlg; const v = d.type === 'text' ? $('#dlg-in').value : null; const vc = !!($('#dlg-chk') && $('#dlg-chk').checked); dlg = null; render(); d.cb(v, vc); break; }
     case 'all-cards': go('deck', 'all'); break;
     case 'new-deck': {
       const ng = t.dataset.g || ''; grpSheet = null;
-      askText('新增牌組', '', nm => {
+      askText('新增牌組', '', (nm, vocab) => {
         if (!nm || !nm.trim()) return;
         const name = nm.trim(); let tg = store.decks.find(x => x.name === name);
         if (tg) { toast('已有同名牌組，已為你打開'); go('deck', tg.id); return; }
-        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; store.decks.push(tg); save(); go('deck', tg.id); toast('已建立，點右上角“新增”加入題目');
-      });
+        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; if (vocab) tg.type = 'vocab'; store.decks.push(tg); save(); go('deck', tg.id); toast('已建立，點右上角“新增”加入題目');
+      }, '單字牌組（含讀音、例句，預設雙向）');
       break;
     }
     case 'pick-start': pick = new Set(); render(); window.scrollTo(0, 0); break;
@@ -1053,10 +1094,10 @@ document.addEventListener('click', e => {
       const q = $('#m-q').value.trim(), a = $('#m-a').value.trim();
       if (!q || !a) { toast('問題和答案都要填'); return; }
       const wrong = $('#m-w').value.split('\n').map(s => s.trim()).filter(s => s && s !== a);
-      const note = $('#m-n').value.trim(), known = $('#m-k').checked;
+      const note = $('#m-n').value.trim(), known = $('#m-k').checked, rdEl = $('#m-rd'), rd = rdEl ? rdEl.value.trim() : undefined;
       const d = deck(modal.did);
-      if (modal.cid) { const c = d.cards.find(x => x.id === modal.cid); Object.assign(c, { q, a, wrong, note, known }); if (known) c.weak = false; if (S && S.opts && S.queue[S.idx] && S.queue[S.idx].cid === modal.cid) S.opts = makeOptions(modal.did, c); }
-      else d.cards.push(normCard({ q, a, wrong, note, known }));
+      if (modal.cid) { const c = d.cards.find(x => x.id === modal.cid); Object.assign(c, { q, a, wrong, note, known }, rd !== undefined ? { rd } : {}); if (known) c.weak = false; if (S && S.opts && S.queue[S.idx] && S.queue[S.idx].cid === modal.cid) S.opts = makeOptions(modal.did, c, S.rev); }
+      else d.cards.push(normCard({ q, a, wrong, note, known, rd }));
       modal = null; save(); render(); toast('已儲存'); break;
     }
     case 'del-card': {
@@ -1068,10 +1109,12 @@ document.addEventListener('click', e => {
       }, true);
       break;
     }
+    case 'toggle-vocab': { const d = deck(route.id); if (d.type === 'vocab') delete d.type; else d.type = 'vocab'; save(); render(); toast(d.type ? '已改為單字牌組' : '已改為一般牌組'); break; }
     case 'rename': { const d = deck(route.id); askText('重命名牌組', d.name, n => { if (n && n.trim()) { d.name = n.trim(); save(); render(); } }); break; }
     case 'reset': { askConfirm('重置進度', '重置這個牌組的所有學習進度？（題目不會刪除）', '重置', () => { deck(route.id).cards.forEach(c => Object.assign(c, { seen: false, reps: 0, interval: 0, due: 0, ease: 2.3, streak: 0, inWrong: false, weak: false })); save(); render(); toast('已重置'); }, true); break; }
     case 'del-deck': { const d = deck(route.id); askConfirm('刪除牌組', `刪除“${d.name}”與其中 ${d.cards.length} 張卡片？此操作無法還原。`, '刪除', () => { store.decks = store.decks.filter(x => x.id !== d.id); save(); go('home'); }, true); break; }
     case 'copy-prompt': copyText(PROMPT); break;
+    case 'copy-prompt-vocab': copyText(PROMPT_VOCAB); break;
     case 'do-import': {
       const msg = $('#imp-msg'), text = $('#imp-text').value;
       if (!text.trim()) { msg.className = 'msg bad-t'; msg.textContent = '請先粘貼內容或選擇檔案'; return; }
@@ -1080,7 +1123,7 @@ document.addEventListener('click', e => {
         const pd = picked ? deck(picked) : null;
         const target = typed || (pd ? pd.name : '');
         let decks = toDecks(parseJSON(text), target || '未分類');
-        if (target) decks = [{ name: target, cards: decks.flatMap(d => d.cards) }];
+        if (target) decks = [{ name: target, type: (decks.find(x => x.type) || {}).type || '', cards: decks.flatMap(d => d.cards) }];
         const total = decks.reduce((n, d) => n + d.cards.length, 0);
         if (!total) throw new Error('沒有找到有效的卡片（每張需要 q 與 a）。');
         const r = mergeDecks(decks);
@@ -1112,7 +1155,7 @@ document.addEventListener('click', e => {
       try { const ro = parseJSON($('#res-text').value); decks = toDecks(ro, '未分類'); if (ro && Array.isArray(ro.groups)) rg = ro.groups.filter(x => typeof x === 'string' && x); }
       catch (err) { msg.className = 'msg bad-t'; msg.textContent = err.message; break; }
       askConfirm('還原備份', `將以備份內容替換目前資料（${decks.length} 個牌組）。確定？`, '還原', () => {
-        store.decks = decks.map(d => Object.assign({ id: d.id || uid(), name: d.name, cards: d.cards }, d.group ? { group: d.group } : {})); store.groups = rg; store.collapsed = {}; syncGroups(); save();
+        store.decks = decks.map(d => Object.assign({ id: d.id || uid(), name: d.name, cards: d.cards }, d.group ? { group: d.group } : {}, d.type ? { type: d.type } : {})); store.groups = rg; store.collapsed = {}; syncGroups(); save();
         const m = $('#res-msg'); if (m) { m.className = 'msg ok-t'; m.textContent = `已還原 ${decks.length} 個牌組。`; }
       }, true);
       break;
