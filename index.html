@@ -231,6 +231,7 @@ label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
 .list{background:var(--card);border-radius:20px;box-shadow:var(--sh);padding:2px 16px;margin-top:10px}
 .item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:12px 0;min-height:56px}
 .item+.item{border-top:1px solid var(--line)}
+.item{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .item .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item .badges{display:flex;gap:6px;flex:none}
 .item.known .t{opacity:.55}
@@ -352,13 +353,14 @@ function syncGroups() {
   for (const d of store.decks) { if (d.group) { if (!store.groups.includes(d.group)) store.groups.push(d.group); } else delete d.group; }
 }
 const dname = d => d.group ? d.group + ' › ' + d.name : d.name;
+const isC = sc => typeof sc === 'string' && sc.startsWith('c:');
 const isG = sc => typeof sc === 'string' && sc.startsWith('g:');
 const isM = sc => typeof sc === 'string' && sc.startsWith('m:');
 const deck = id => store.decks.find(d => d.id === id);
 function find(did, cid) { const d = deck(did); if (!d) return null; const c = d.cards.find(x => x.id === cid); return c ? { d, c } : null; }
 const isDue = c => !c.seen || c.due <= Date.now();
 function status(c) { if (!c.seen) return 'new'; if (c.interval >= 21) return 'mastered'; return 'learning'; }
-function poolFor(scope) { const out = []; for (const d of store.decks) if (scope === 'all' || d.id === scope || (isG(scope) && d.group === scope.slice(2)) || (isM(scope) && scope.slice(2).split(',').includes(d.id))) for (const c of d.cards) out.push({ d, c }); return out; }
+function poolFor(scope) { const out = []; if (isC(scope)) { const ids = new Set(scope.slice(2).split(',')); for (const d of store.decks) for (const c of d.cards) if (ids.has(c.id)) out.push({ d, c }); return out; } for (const d of store.decks) if (scope === 'all' || d.id === scope || (isG(scope) && d.group === scope.slice(2)) || (isM(scope) && scope.slice(2).split(',').includes(d.id))) for (const c of d.cards) out.push({ d, c }); return out; }
 function match(c, f) { if (f === 'known') return !!c.known; if (c.known) return false; if (f === 'due') return isDue(c); if (f === 'weak') return c.weak; if (f === 'wrong') return c.inWrong; return true; }
 function counts(scope) { const p = poolFor(scope), a = p.filter(x => !x.c.known); return { total: p.length, known: p.length - a.length, due: a.filter(x => isDue(x.c)).length, fresh: a.filter(x => !x.c.seen).length, weak: a.filter(x => x.c.weak).length, wrong: a.filter(x => x.c.inWrong).length, mastered: p.filter(x => x.c.known || status(x.c) === 'mastered').length, learning: a.filter(x => status(x.c) === 'learning').length }; }
 
@@ -539,7 +541,7 @@ function viewHome() {
 }
 
 function sheetHTML() {
-  const sh = sheet, name = sh.scope === 'all' ? '全部混合' : isG(sh.scope) ? sh.scope.slice(2) : isM(sh.scope) ? '已選 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 個牌組' : deck(sh.scope).name;
+  const sh = sheet, name = sh.scope === 'all' ? '全部混合' : isG(sh.scope) ? sh.scope.slice(2) : isC(sh.scope) ? '已選 ' + poolFor(sh.scope).length + ' 張卡片' : isM(sh.scope) ? '已選 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 個牌組' : deck(sh.scope).name;
   const pool = poolFor(sh.scope);
   const cnt = f => pool.filter(x => match(x.c, f)).length;
   const n = cnt(sh.filter);
@@ -552,7 +554,7 @@ function sheetHTML() {
     <div class="opts">${frow('due', '待複習與新卡')}${frow('weak', '不熟')}${frow('wrong', '錯題本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
     <div class="sub">方式</div>
     <div class="seg">${seg('set-mode', 'browse', sh.mode, '瀏覽')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}${seg('set-mode', 'flip', sh.mode, '翻卡')}</div>
-    ${sh.mode === 'browse' ? `<div class="sub">順序（瀏覽不影响學習進度）</div><div class="seg">${seg('set-order', 'seq', sh.order, '依序')}${seg('set-order', 'rand', sh.order, '隨機')}</div>` : ''}
+    ${sh.mode === 'browse' ? `<div class="sub">順序（瀏覽不影響學習進度）</div><div class="seg">${seg('set-order', 'seq', sh.order, '依序')}${seg('set-order', 'rand', sh.order, '隨機')}</div>` : ''}
     <div class="sub">方向（反向：看答案，回想問題）</div>
     <div class="seg">${seg('set-dir', 'f', sh.dir, '正向')}${seg('set-dir', 'r', sh.dir, '反向')}${seg('set-dir', 'x', sh.dir, '隨機')}</div>
     ${TTS_OK ? `<div class="sub">朗讀語言（卡片左上角的喇叭）</div><div class="seg">${seg('set-tts', 'auto', sh.tts, '自動')}${seg('set-tts', 'ja-JP', sh.tts, '日文')}${seg('set-tts', 'en-US', sh.tts, '英文')}${seg('set-tts', 'zh-TW', sh.tts, '中文')}</div>` : ''}
@@ -582,11 +584,12 @@ function ttsLang(txt, pref, ctxLang) {
   if (/[a-zA-Z]/.test(txt) && !/[一-鿿]/.test(txt)) return 'en-US';
   return ctxLang || 'zh-TW';
 }
+let ttsOn = false;
 function speak(txt, field, dk) {
   if (!TTS_OK) return;
   const s = (String(txt).split(/[｜|]/)[0] || '').trim() || String(txt);
   const info = dk ? deckLangInfo(dk) : null;
-  const u = new SpeechSynthesisUtterance(s); u.lang = ttsLang(s, S && S.cfg && S.cfg.tts, info && info.side === field ? info.lang : null); u.rate = 0.9;
+  const u = new SpeechSynthesisUtterance(s); u.lang = ttsLang(s, S && S.cfg && S.cfg.tts, info && info.side === field ? info.lang : null); u.rate = 0.9; u.onstart = () => { ttsOn = true; }; u.onend = u.onerror = () => { ttsOn = false; };
   try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
 function viewBrowse() {
@@ -595,7 +598,7 @@ function viewBrowse() {
   const c = f.c, fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
   const last = S.idx >= S.queue.length - 1, pct = Math.round((S.idx + 1) / S.queue.length * 100);
   const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : '');
-  return `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}結束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
+  return `<header class="top study"><button class="pill" data-act="${S.from ? 'view-back' : 'go'}" data-r="home">${ic('back')}${S.from ? '返回' : '結束'}</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
   <div class="fl-wrap"><div class="stage"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
     <div class="face front" data-act="bflip">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div><div class="hint">點一下翻面，左右滑動切換</div></div>
     <div class="face back" data-act="bflip">${spk('a')}<div class="qs">${esc(fq)}</div>${S.rev ? '' : rdH}<div class="hair"></div><div class="at">${esc(fa)}</div>${S.rev ? rdH : ''}${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
@@ -689,18 +692,18 @@ function viewDeck() {
   const F = [['all', '全部'], ['due', '待複習'], ['weak', '不熟'], ['wrong', '錯題'], ['new', '新卡'], ['known', '已熟悉']];
   const cnt = k => k === 'all' ? list.length : list.filter(x => (' ' + cardTags(x.c) + ' ').includes(' ' + k + ' ')).length;
   h += `<div class="fchips">${F.map(([k, t]) => `<button class="chip${listFilter === k ? ' on' : ''}" data-act="lf" data-v="${k}" data-count="${cnt(k)}">${t} ${cnt(k)}</button>`).join('')}</div>`;
-  h += `<div class="list" id="list">`;
+  h += (sel ? '' : `<p class="sub" style="margin:0 0 4px">點一下检视卡片 · 长按多選</p>`) + `<div class="list" id="list">`;
   if (!list.length) h += `<p class="sub center" style="padding:16px 0">還沒有卡片</p>`;
   for (const { d: dk, c } of list) {
     const sx = esc((c.q + ' ' + (c.rd || '') + ' ' + c.a + (isAll ? ' ' + dk.name : '')).toLowerCase());
     const sub = (isAll ? `<small>${esc(dk.name)}</small>` : '') + (dk.type === 'vocab' ? `<small>${c.rd ? esc(c.rd) + ' · ' : ''}${esc(c.a)}</small>` : '');
     const common = `data-did="${dk.id}" data-cid="${c.id}" data-s="${sx}" data-t="${cardTags(c)}"`;
     if (sel) h += `<button class="item${c.known ? ' known' : ''}${sel.ids.has(c.id) ? ' sel' : ''}" data-act="sel-toggle" ${common}><span class="chk-c">${ic('check')}</span><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
-    else h += `<button class="item${c.known ? ' known' : ''}" data-act="edit" ${common}><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
+    else h += `<button class="item${c.known ? ' known' : ''}" data-act="view" ${common}><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
   }
   h += `<p id="empty" class="sub center" style="display:none;padding:16px 0">沒有符合的卡片</p></div>`;
   if (sel) {
-    h += `<div style="height:230px"></div><div class="selbar"><div class="selin"><div class="selrow"><span id="selcount" class="sub">已選 ${sel.ids.size} 張</span><button class="pill flat" data-act="sel-all">全選</button></div><div class="row"><button class="btn" data-act="bulk-known">標為已熟悉</button><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bulk-unknown">取消已熟悉</button></div><div class="row" style="margin-top:8px"><button class="pill" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-move">移到其他牌組</button><button class="pill danger" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-del">刪除</button></div></div></div>`;
+    h += `<div style="height:290px"></div><div class="selbar"><div class="selin"><div class="selrow"><span id="selcount" class="sub">已選 ${sel.ids.size} 張</span><button class="pill flat" data-act="sel-all">全選</button></div><div class="row" style="margin-bottom:8px"><button class="btn" data-act="sel-study">複習所選</button></div><div class="row"><button class="btn" data-act="bulk-known">標為已熟悉</button><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bulk-unknown">取消已熟悉</button></div><div class="row" style="margin-top:8px"><button class="pill" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-move">移到其他牌組</button><button class="pill danger" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-del">刪除</button></div></div></div>`;
   } else if (!isAll) {
     h += `<h2>牌組設定</h2><div class="row" style="flex-wrap:wrap"><button class="pill" data-act="rename">重命名</button><button class="pill" data-act="toggle-vocab">${d.type === 'vocab' ? '改為一般牌組' : '改為單字牌組'}</button><button class="pill" data-act="deck-group">移到群組</button><button class="pill" data-act="reset">重置進度</button><button class="pill danger" data-act="del-deck">刪除牌組</button></div>`;
   }
@@ -928,7 +931,7 @@ function render() {
     case 'backup': h = viewBackup(); break;
     default: h = viewHome();
   }
-  if (sheet && route.name === 'home') h += sheetHTML();
+  if (sheet && (route.name === 'home' || route.name === 'deck')) h += sheetHTML();
   if (modal) h += modalHTML();
   if (moveSheet && route.name === 'deck') h += moveHTML();
   if (grpSheet && route.name === 'home') h += grpSheetHTML();
@@ -968,7 +971,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'search') { listQuery = e.target.value; applyListFilter(); }
 });
-function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: 'browse', count: store.settings.count, order: 'seq', dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
+function openSheet(scope) { const isc = isC(scope); sheet = { scope, filter: isc ? 'all' : store.settings.filter, mode: 'browse', count: isc ? 0 : store.settings.count, order: 'seq', dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
 
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
@@ -987,7 +990,7 @@ document.addEventListener('click', e => {
     case 'set-order': sheet.order = t.dataset.v; sheetRefresh(); break;
     case 'set-dir': sheet.dir = t.dataset.v; sheetRefresh(); break;
     case 'set-tts': sheet.tts = t.dataset.v; sheetRefresh(); break;
-    case 'speak': { const it = S && S.queue[S.idx], f = it && find(it.did, it.cid); if (f) { const wordSide = (t.dataset.w === 'q') !== S.rev; speak(wordSide ? (f.c.rd || f.c.q) : f.c.a, wordSide ? 'q' : 'a', deck(it.did)); } break; }
+    case 'speak': { if (TTS_OK && (ttsOn || speechSynthesis.speaking || speechSynthesis.pending)) { ttsOn = false; try { speechSynthesis.cancel(); } catch (e) {} break; } const it = S && S.queue[S.idx], f = it && find(it.did, it.cid); if (f) { const wordSide = (t.dataset.w === 'q') !== S.rev; speak(wordSide ? (f.c.rd || f.c.q) : f.c.a, wordSide ? 'q' : 'a', deck(it.did)); } break; }
     case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count, order: sheet.order, dir: sheet.dir, tts: sheet.tts }); break;
     case 'again-round': startSession(S.cfg); break;
     case 'manage': go('deck', t.dataset.id); break;
@@ -1001,7 +1004,8 @@ document.addEventListener('click', e => {
     case 'bflip': { S.flipped = !S.flipped; const el = document.querySelector('.flip'); if (el) el.classList.toggle('is-flipped', S.flipped); break; }
     case 'bgo': {
       const d = +t.dataset.d;
-      if (d > 0 && S.idx >= S.queue.length - 1) { go('home'); toast('瀏覽完成'); break; }
+      try { speechSynthesis.cancel(); } catch (e) {}
+      if (d > 0 && S.idx >= S.queue.length - 1) { if (S.from) go(S.from.name, S.from.id); else go('home'); toast('瀏覽完成'); break; }
       S.idx = Math.max(0, Math.min(S.queue.length - 1, S.idx + d)); S.flipped = false; S.rev = S.cfg.dir === 'r';
       window.scrollTo(0, 0); render(); break;
     }
@@ -1018,6 +1022,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'sel-start': sel = { ids: new Set() }; render(); break;
+    case 'sel-study': { if (!sel || !sel.ids.size) { toast('先點選卡片'); return; } const sc = 'c:' + [...sel.ids].join(','); sel = null; openSheet(sc); break; }
     case 'sel-done': sel = null; render(); break;
     case 'sel-toggle': {
       const id = t.dataset.cid;
@@ -1131,6 +1136,16 @@ document.addEventListener('click', e => {
       });
       break;
     }
+    case 'view': {
+      const items = [...document.querySelectorAll('#list .item[data-act=view]')].filter(el => el.offsetParent !== null);
+      const queue = items.map(el => ({ did: el.dataset.did, cid: el.dataset.cid }));
+      const idx = Math.max(0, items.indexOf(t));
+      if (!queue.length) break;
+      const from = { name: route.name, id: route.id };
+      S = { cfg: { scope: route.id || 'all', filter: 'all', mode: 'browse', count: 0, order: 'seq', dir: 'f', tts: store.settings.tts || 'auto' }, queue, idx, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true, rev: false, from };
+      go('study'); break;
+    }
+    case 'view-back': { const f = S && S.from; try { speechSynthesis.cancel(); } catch (e) {} if (f) go(f.name, f.id); else go('home'); break; }
     case 'edit': modal = { did: t.dataset.did, cid: t.dataset.cid }; render(); break;
     case 'new-card': modal = { did: route.id, cid: null }; render(); break;
     case 'save-card': {
@@ -1252,6 +1267,21 @@ document.addEventListener('touchend', e => {
   };
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', end, { passive: true });
+})();
+
+(function(){
+  let lp = null, fired = false, sx = 0, sy = 0;
+  const clr = () => { if (lp) { clearTimeout(lp); lp = null; } };
+  document.addEventListener('touchstart', e => {
+    const it = e.target.closest && e.target.closest('#list .item[data-act=view]'); if (!it) return;
+    fired = false; sx = e.touches[0].clientX; sy = e.touches[0].clientY; clr();
+    lp = setTimeout(() => { lp = null; fired = true; try { navigator.vibrate && navigator.vibrate(15); } catch (_) {} sel = { ids: new Set([it.dataset.cid]) }; render(); setTimeout(() => { fired = false; }, 700); }, 450);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => { if (lp && (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10)) clr(); }, { passive: true });
+  document.addEventListener('touchend', clr, { passive: true });
+  document.addEventListener('touchcancel', clr, { passive: true });
+  document.addEventListener('click', e => { if (fired) { fired = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('#list .item')) e.preventDefault(); });
 })();
 load();
 applyTheme();
