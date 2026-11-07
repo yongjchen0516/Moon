@@ -572,11 +572,11 @@ function viewHome() {
     h += `<div class="hero-row"><span class="n">${all.due}</span><span class="cap">張今天要複習</span></div><div class="stats">${sp || '&nbsp;'}</div>`;
     h += `<div class="go"><button class="btn" data-act="quick">開始複習（${run} 張）</button></div>`;
   } else {
-    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，點下面的“全部混合”，可以挑不熟悉或錯題再來一輪</span></div>`;
+    h += `<div class="done-t">今天的卡都複習完了</div><div class="stats"><span>想多練的話，點下面的“混合題目”，可以挑不熟悉或錯題再來一輪</span></div>`;
   }
   h += `</section>`;
   h += goalHTML();
-  h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">全部混合</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
+  h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">混合題目</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
   h = pick ? hh + `<p class="sub" style="margin:4px 4px 0">點選要複習的牌組，也可以點群組一次選整組</p>` : hh + h + `<button class="pill" style="width:100%;justify-content:center;min-height:50px;margin:2px 0 6px;color:var(--acc);font-weight:600" data-act="pick-start">${ic('check')}選擇牌組複習</button>`;
   const deckRow = d => { const c = counts(d.id); if (pick) { const on = pick.has(d.id); return `<div class="deck"><button class="deck-main pk${on ? ' on' : ''}" data-act="pick-toggle" data-id="${d.id}" aria-pressed="${on}"><span class="chk-c" style="${on ? 'background:var(--acc);border-color:var(--acc);color:var(--acc-ink)' : ''}">${ic('check')}</span><div class="info"><div class="name">${esc(d.name)}${d.type === 'vocab' ? '<span class="badge" style="margin-left:8px;vertical-align:middle">單字</span>' : ''}</div>${statsHTML(c, true)}</div></button></div>`; } return `<div class="deck"><button class="deck-main" data-act="sheet" data-id="${d.id}">${ringHTML(c)}<div class="info"><div class="name">${esc(d.name)}${d.type === 'vocab' ? '<span class="badge" style="margin-left:8px;vertical-align:middle">單字</span>' : ''}</div>${statsHTML(c, true)}</div></button><button class="pill icon flat" data-act="manage" data-id="${d.id}" aria-label="管理“${esc(d.name)}”">${ic('more')}</button></div>`; };
   for (const g of store.groups) {
@@ -595,7 +595,7 @@ function viewHome() {
 }
 
 function sheetHTML() {
-  const sh = sheet, name = sh.scope === 'all' ? '全部混合' : isG(sh.scope) ? sh.scope.slice(2) : isC(sh.scope) ? '已選 ' + poolFor(sh.scope).length + ' 張卡片' : isM(sh.scope) ? '已選 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 個牌組' : deck(sh.scope).name;
+  const sh = sheet, name = sh.scope === 'all' ? '混合題目' : isG(sh.scope) ? sh.scope.slice(2) : isC(sh.scope) ? '已選 ' + poolFor(sh.scope).length + ' 張卡片' : isM(sh.scope) ? '已選 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 個牌組' : deck(sh.scope).name;
   const pool = poolFor(sh.scope);
   const cnt = f => pool.filter(x => match(x.c, f)).length;
   const n = cnt(sh.filter);
