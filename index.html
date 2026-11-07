@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="zh-Hans" data-theme="rila">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F1E8DB">
+<title>Moon</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/rila-180.png">
+<link rel="icon" type="image/png" href="icons/rila-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Moon">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{
+  --bg:#E8EBE9;--card:#F8F8F5;--ink:#1F2733;--sub:#5A6472;--line:#D5DAD8;
+  --acc:#3C4E9C;--acc-ink:#F5F6FC;--acc-soft:rgba(60,78,156,.10);
+  --good:#3F7A66;--good-soft:rgba(74,133,112,.15);--good-ring:#5A9A84;
+  --warn:#8F6620;--warn-soft:rgba(185,138,54,.17);--warn-ring:#CBA045;
+  --bad:#A94643;--bad-soft:rgba(178,82,79,.13);
+  --hero:#2A3566;--hero-ink:#EEF0FA;--hero-sub:rgba(238,240,250,.72);--hero-btn:#F3F4FA;--hero-btn-ink:#2A3566;
+  --sh:0 1px 2px rgba(31,39,51,.05),0 16px 32px -20px rgba(31,39,80,.38);
+  --sh-s:0 1px 2px rgba(31,39,51,.08);
+  --shade:rgba(20,24,40,.38);
+  --serif:"Noto Serif SC","Source Han Serif SC","Noto Serif CJK SC","Songti SC","SimSun",ui-serif,Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#11141B;--card:#1A1E28;--ink:#E3E6EE;--sub:#8F96A6;--line:#2A303D;
+  --acc:#9DAAF0;--acc-ink:#12162A;--acc-soft:rgba(157,170,240,.14);
+  --good:#86C2AA;--good-soft:rgba(125,187,162,.16);--good-ring:#6FAF96;
+  --warn:#D8B06A;--warn-soft:rgba(212,174,102,.16);--warn-ring:#C9A25A;
+  --bad:#E0908C;--bad-soft:rgba(217,138,134,.16);
+  --hero:#222B52;--hero-ink:#E8EBFA;--hero-sub:rgba(232,235,250,.68);--hero-btn:#E8EBFA;--hero-btn-ink:#1B2347;
+  --sh:0 1px 0 rgba(255,255,255,.03) inset,0 18px 34px -22px rgba(0,0,0,.85);
+  --sh-s:0 1px 2px rgba(0,0,0,.4);
+  --shade:rgba(0,0,0,.55);
+}}
+
+/* theme: rila (warm brown, cream, honey) */
+:root[data-theme="rila"]{
+  --bg:#F1E8DB;--card:#FBF6EE;--ink:#4A3426;--sub:#75604E;--line:#E3D6C4;
+  --acc:#8F6040;--acc-ink:#FFF8EE;--acc-soft:rgba(143,96,64,.12);--tab:#E0B23F;
+  --good:#4F7C4A;--good-soft:rgba(111,150,95,.18);--good-ring:#7FA36F;
+  --warn:#8A6414;--warn-soft:rgba(224,178,63,.22);--warn-ring:#E0B23F;
+  --bad:#B04F4A;--bad-soft:rgba(206,108,100,.15);
+  --hero:#5A3E2E;--hero-ink:#FFF3E2;--hero-sub:rgba(255,243,226,.74);--hero-btn:#FBE7B4;--hero-btn-ink:#5A3E2E;
+  --sh:0 1px 2px rgba(74,52,38,.06),0 16px 32px -20px rgba(90,62,46,.40);
+  --sh-s:0 1px 2px rgba(74,52,38,.10);
+  --shade:rgba(50,34,24,.42);
+}
+@media (prefers-color-scheme:dark){:root[data-theme="rila"]{
+  --bg:#1F1813;--card:#2B221B;--ink:#F1E3D0;--sub:#B6A28E;--line:#3C3027;
+  --acc:#D9A77B;--acc-ink:#2A1B10;--acc-soft:rgba(217,167,123,.16);--tab:#E0B23F;
+  --good:#A9C792;--good-soft:rgba(141,176,122,.18);--good-ring:#8DB07A;
+  --warn:#E8C26A;--warn-soft:rgba(224,178,63,.18);--warn-ring:#D9AE4A;
+  --bad:#E59A90;--bad-soft:rgba(229,154,144,.16);
+  --hero:#3A2A1F;--hero-ink:#FBEBD6;--hero-sub:rgba(251,235,214,.70);--hero-btn:#F2D9AE;--hero-btn-ink:#3A2A1F;
+  --sh:0 1px 0 rgba(255,255,255,.03) inset,0 18px 34px -22px rgba(0,0,0,.85);
+  --sh-s:0 1px 2px rgba(0,0,0,.4);
+  --shade:rgba(0,0,0,.55);
+}}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+#app{max-width:680px;margin:0 auto;padding:0 18px calc(48px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+textarea,input[type=text],input[type=file],select{font:inherit;color:inherit;width:100%;padding:13px 15px;border-radius:14px;border:1px solid var(--line);background:var(--card)}
+select{min-height:50px}
+textarea{min-height:110px;resize:vertical;line-height:1.6}
+input[type=file]{padding:10px 12px;font-size:15px}
+svg.ic{flex:none;display:block}
+
+/* type */
+h1{font:600 28px/1.25 var(--serif);letter-spacing:.04em;margin:0}
+@font-face{font-family:"MoonLogo";font-style:normal;font-weight:400;src:url(data:font/woff;base64,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) format("woff");font-display:block}
+h1.logo{display:flex;align-items:center;gap:8px;font:400 30px/1 "MoonLogo",var(--serif);letter-spacing:.01em;margin:0}
+h1.logo svg{width:24px;height:24px;flex:none;color:var(--acc,currentColor);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--acc,currentColor) 45%,transparent))}
+h1.logo i{font-style:normal;position:relative;top:-1px}
+h2{font:600 18px/1.4 var(--sans);margin:28px 0 10px}
+.serif{font-family:var(--serif)}
+.sub{color:var(--sub);font-size:14px}
+.num{font-variant-numeric:tabular-nums}
+
+/* layout */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:20px 0 14px}
+.row{display:flex;gap:8px;align-items:center}
+.center{text-align:center}
+.card{background:var(--card);border-radius:20px;padding:18px;margin:14px 0;box-shadow:var(--sh)}
+label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
+
+/* buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;padding:0 22px;border-radius:16px;background:var(--acc);color:var(--acc-ink);font-weight:600;letter-spacing:.03em}
+.btn[disabled]{opacity:.4}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 15px;border-radius:21px;background:var(--card);box-shadow:var(--sh-s);font-size:15px;white-space:nowrap}
+.pill.icon{padding:0;width:42px;justify-content:center}
+@media(max-width:400px){.top .row{gap:5px}.top .pill.icon{width:38px;min-height:38px}.top .pill{padding:0 11px;min-height:38px}h1.logo{gap:5px;font-size:28px}}
+.pill.on-warn{background:var(--warn-soft);color:var(--warn)}
+.pill.danger,.danger{color:var(--bad)}
+.pill.flat{background:transparent;box-shadow:none;color:var(--sub)}
+.chip{min-height:44px;padding:0 18px;border-radius:22px;background:var(--card);box-shadow:var(--sh-s)}
+.chip.on{background:var(--acc-soft);color:var(--acc);font-weight:600}
+
+/* home */
+.warn{background:var(--warn-soft);color:var(--ink);border-radius:14px;padding:12px 16px;margin:4px 0 14px;font-size:15px}
+.hero{background:var(--hero);color:var(--hero-ink);border-radius:26px;padding:24px 22px 20px;margin:6px 0 22px;box-shadow:var(--sh)}
+.hero-row{display:flex;align-items:baseline;gap:10px}
+.hero .n{font:600 60px/1 var(--serif);font-variant-numeric:lining-nums tabular-nums}
+.hero .cap{font-size:17px;color:var(--hero-sub)}
+.hero .done-t{font:600 26px/1.4 var(--serif);letter-spacing:.03em}
+.hero .stats{margin:12px 0 18px;color:var(--hero-sub)}
+.hero .stats b{color:var(--hero-ink)}
+.hero .btn{background:var(--hero-btn);color:var(--hero-btn-ink)}
+.hero .go{display:flex;gap:10px;align-items:center}
+.hero .go .more{flex:none;min-height:54px;padding:0 6px;color:var(--hero-sub);font-size:15px}
+.stats{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:14px;color:var(--sub)}
+.stats b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.deck{display:flex;align-items:center;gap:2px;margin:12px 0}
+.deck .pill.icon{width:40px}
+.deck-main{flex:1;min-width:0;display:flex;align-items:center;gap:14px;text-align:left;background:var(--card);border-radius:20px;padding:14px;box-shadow:var(--sh)}
+.deck-main .name{font:600 18px/1.4 var(--serif);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deck-main .info{flex:1;min-width:0}
+.deck-main .stats{margin-top:2px}
+.ring{position:relative;flex:none;width:48px;height:48px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:4}
+.ring .rb{stroke:var(--line)}.ring .rl{stroke:var(--warn-ring)}.ring .rm{stroke:var(--good-ring)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font:600 12px var(--sans);color:var(--sub);font-variant-numeric:tabular-nums}
+.grp{display:flex;align-items:center;gap:2px;margin:20px 0 4px}
+.grp-h{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;text-align:left;padding:0 4px}
+.grp-h .chev{display:grid;place-items:center;color:var(--sub);transition:transform .2s}
+.grp-h .chev.open{transform:rotate(90deg)}
+.grp-h .gname{font:600 17px/1.3 var(--serif);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp-h .gmeta{margin-left:auto;font-size:13px;color:var(--sub);white-space:nowrap;padding-left:8px}
+.grp-body{margin-left:12px;padding-left:10px;border-left:2px solid var(--line)}
+.grp-body .deck{margin:8px 0}
+.grp-empty{font-size:14px;color:var(--sub);margin:8px 0 12px}
+.glabel{font-size:13px;color:var(--sub);margin:20px 4px 2px;letter-spacing:.04em}
+.deck-main.pk .chk-c{margin-right:0}
+.deck-main.pk.on{box-shadow:0 0 0 2px var(--acc),var(--sh)}
+.grp-h .chk-c{margin-right:0}
+.grp-h.on .chk-c{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.legend{display:flex;justify-content:center;gap:18px;font-size:13px;color:var(--sub);margin-top:22px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+
+/* sheet & modal */
+.overlay{position:fixed;inset:0;background:var(--shade);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;z-index:10;animation:fade .2s ease-out}
+.sheet{width:100%;max-width:680px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:12px 18px calc(24px + env(safe-area-inset-bottom));animation:rise .28s cubic-bezier(.2,.8,.25,1)}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.sheet h2.t{font:600 22px/1.4 var(--serif);margin:0 0 4px;letter-spacing:.03em}
+.opts{background:var(--card);border-radius:18px;box-shadow:var(--sh);overflow:hidden;margin:6px 0 18px}
+.rowopt{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:0 16px;text-align:left}
+.rowopt+.rowopt{border-top:1px solid var(--line)}
+.rowopt .dot{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;color:transparent}
+.rowopt.on .dot{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.rowopt .t{flex:1}
+.rowopt .c{color:var(--sub);font-variant-numeric:tabular-nums}
+.rowopt.on .t{font-weight:600}
+.seg{display:flex;gap:4px;padding:4px;background:var(--acc-soft);border-radius:16px;margin:6px 0 18px}
+.seg button{flex:1;min-height:44px;border-radius:12px}
+.seg button.on{background:var(--card);box-shadow:var(--sh-s);font-weight:600}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+
+/* study */
+.top.study{padding-bottom:10px}
+.cnt{font:600 16px var(--sans);font-variant-numeric:tabular-nums}
+.cnt span{color:var(--sub);font-weight:400}
+.pbar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin:0 0 18px}
+.pbar i{display:block;height:100%;background:var(--acc);border-radius:2px;transition:width .35s ease}
+.spacer{flex:none;width:40px}
+.fl-wrap{display:flex;flex-direction:column;min-height:calc(100vh - 205px);min-height:calc(100dvh - 205px)}
+.fl-wrap .stage{flex:1;display:flex;flex-direction:column;justify-content:center;padding-bottom:12px}
+.fl-wrap #ctl{padding-top:6px}
+.fl-wrap .rates{margin-top:0}
+.tools{display:flex;gap:8px;margin:0 0 14px}
+.pill.on-good{background:var(--good-soft);color:var(--good)}
+.stage.enter{animation:in .3s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.flip{perspective:1400px}
+.flip-in{display:grid;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.75,.25,1)}
+.flip.is-flipped .flip-in{transform:rotateY(180deg)}
+.face{grid-area:1/1;position:relative;min-height:300px;background:var(--card);border-radius:26px;box-shadow:var(--sh);padding:34px 26px 30px;display:flex;flex-direction:column;justify-content:center;gap:16px;white-space:pre-wrap;word-break:break-word;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.face::before{content:"";position:absolute;left:26px;top:0;width:44px;height:4px;border-radius:0 0 4px 4px;background:var(--tab,var(--acc))}
+.face.back{transform:rotateY(180deg)}
+.face.back::before{background:var(--good-ring)}
+.face.solo{min-height:190px}
+.face.front{cursor:pointer}
+.qt{font:500 24px/1.8 var(--serif);letter-spacing:.02em}
+.qs{font:400 15px/1.7 var(--serif);color:var(--sub)}
+.hair{height:1px;background:var(--line)}
+.at{font:600 26px/1.65 var(--serif);color:var(--acc);letter-spacing:.02em}
+.nt{font-size:15px;line-height:1.75;color:var(--sub)}
+.hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:13px;color:var(--sub);opacity:.8}
+.tags{position:absolute;top:14px;right:16px;display:flex;gap:6px}
+.badge{display:inline-block;font-size:12px;line-height:1.5;padding:1px 9px;border-radius:10px;background:var(--acc-soft);color:var(--acc)}
+.badge.w{background:var(--warn-soft);color:var(--warn)}
+.badge.b{background:var(--bad-soft);color:var(--bad)}
+.badge.g{background:var(--good-soft);color:var(--good)}
+.rates{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}
+.rate{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:68px;border-radius:16px;font-weight:600}
+.rate small{font-weight:400;font-size:12px;opacity:.78;font-variant-numeric:tabular-nums}
+.rate.r0{background:var(--bad-soft);color:var(--bad)}
+.rate.r1{background:var(--warn-soft);color:var(--warn)}
+.rate.r2{background:var(--good-soft);color:var(--good)}
+.rate.r3{background:var(--acc);color:var(--acc-ink)}
+.opt{display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;padding:15px 16px;margin:10px 0;border-radius:18px;background:var(--card);box-shadow:var(--sh-s);min-height:58px;white-space:pre-wrap;word-break:break-word;border:1.5px solid transparent;color:var(--ink)}
+.opt .k{flex:none;width:28px;height:28px;border-radius:50%;background:var(--acc-soft);color:var(--acc);display:grid;place-items:center;font:600 13px var(--sans);margin-top:1px}
+.opt .ot{flex:1;padding-top:2px}
+.opt.ok{border-color:var(--good-ring);background:var(--good-soft)}
+.opt.ok .k{background:var(--good-ring);color:#fff}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft)}
+.opt.bad .k{background:var(--bad);color:#fff}
+.fb{margin:16px 2px 8px;font-weight:600}
+.ok-t{color:var(--good)}.bad-t{color:var(--bad)}
+.msg{margin:12px 0 0;font-size:15px}
+.done .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin:22px 0 14px}
+.done .stat b{display:block;font:600 34px/1.2 var(--serif);font-variant-numeric:tabular-nums}
+.done .stat span{font-size:13px;color:var(--sub)}
+
+/* lists */
+.list{background:var(--card);border-radius:20px;box-shadow:var(--sh);padding:2px 16px;margin-top:10px}
+.item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:12px 0;min-height:56px}
+.item+.item{border-top:1px solid var(--line)}
+.item .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .badges{display:flex;gap:6px;flex:none}
+.item.known .t{opacity:.55}
+.item.nb{border-top:0}
+.item .t{line-height:1.45}
+.item .t small{display:block;font-size:12.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis}
+.fchips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 10px;scrollbar-width:none}
+.fchips::-webkit-scrollbar{display:none}
+.fchips .chip{flex:none;min-height:40px;padding:0 14px;font-size:15px;white-space:nowrap}
+.rowopt .dot svg{width:14px;height:14px}
+.chk-c{flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;color:transparent;margin-right:12px}
+.chk-c svg{width:16px;height:16px}
+.item.sel .chk-c{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.selbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);box-shadow:0 -10px 28px -14px rgba(20,24,40,.35);padding:10px 18px calc(14px + env(safe-area-inset-bottom));z-index:5}
+.selin{max-width:644px;margin:0 auto}
+.selrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.chk{display:flex;align-items:center;gap:12px;margin-top:16px;min-height:44px}
+.chk input{width:22px;height:22px;accent-color:var(--acc);flex:none}
+pre{white-space:pre-wrap;word-break:break-all;background:var(--bg);border-radius:14px;padding:14px;font:13.5px/1.7 ui-monospace,Menlo,Consolas,monospace;margin:10px 0}
+.toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:24px;font-size:15px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:.96}
+
+.overlay.center-dlg{align-items:center;padding:0 22px}
+.dlg{width:100%;max-width:420px;background:var(--bg);border-radius:24px;padding:22px 20px 20px;box-shadow:var(--sh);animation:rise .22s cubic-bezier(.2,.8,.25,1)}
+.dlg h2.t{font:600 20px/1.4 var(--serif);margin:0 0 12px;letter-spacing:.03em}
+.dmsg{margin:0;line-height:1.7}
+.btn.danger-btn{background:var(--bad);color:#fff}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" role="status"></div>
+<script>
+"use strict";
+const KEY = 'review-cards-v1';
+const RATE_LABELS = ['不会', '模糊', '记得', '很熟'];
+const PROMPT = `请根据我附上的笔记照片，产生复习用题目卡片。
+只输出一个 JSON 代码块，不要有其他说明文字，格式如下：
+{"decks":[{"name":"牌组名称","cards":[{"q":"问题","a":"简短答案","wrong":["干扰1","干扰2","干扰3"],"note":"补充说明"}]}]}
+规则：
+- 每张卡只问一个概念，答案尽量简短（一句话以内）
+- wrong 的干扰选项要和正确答案同类型、看起来合理但明确错误
+- 照片看不清楚的地方不要猜，请跳过
+- 不要编造照片中没有的内容`;
+
+let store = { decks: [], groups: [], collapsed: {}, settings: { filter: 'due', mode: 'flip', count: 20, theme: 'indigo' } };
+let storageOK = true;
+let route = { name: 'home' };
+let sheet = null;   // {scope, filter, mode, count}
+let modal = null;   // {did, cid}
+let S = null;       // study session
+let sel = null;     // deck select mode {ids:Set}
+let moveSheet = null;
+let pick = null;      // Set of deck ids when choosing decks to review
+let grpSheet = null;   // {g}
+let deckGrpSheet = null; // {did}
+let dlg = null;
+let listQuery = '', listFilter = 'all';
+
+/* ---------- icons ---------- */
+const ICONS = {
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  save: '<path d="M12 4v11M7.5 11L12 15.5 16.5 11M5 20h14"/>',
+  star: '<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>',
+  pencil: '<path d="M4.5 19.5l.9-3.9L16.3 4.7a2 2 0 012.9 2.9L8.3 18.6l-3.8.9z"/>',
+  check: '<path d="M5.5 12.5l4.2 4.2L18.5 8"/>',
+  list: '<path d="M8.5 6.5H20M8.5 12H20M8.5 17.5H20"/><path d="M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" stroke-width="2.6"/>',
+  chev: '<path d="M9 6l6 6-6 6"/>',
+  more: '<path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/>',
+  palette: '<path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a3.5 3.5 0 003.5-3.5C20.5 7 16.8 3.5 12 3.5z"/><path d="M7.5 11h.01M10 7.5h.01M14.5 7.5h.01" stroke-width="2.4"/>'
+};
+function ic(n, fill) { return `<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="${fill ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`; }
+
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const key = q => String(q).toLowerCase().replace(/\s+/g, '');
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+let toastTimer;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 1800); }
+function copyText(t) {
+  const fallback = () => { const x = document.createElement('textarea'); x.value = t; x.style.position = 'fixed'; x.style.opacity = '0'; document.body.appendChild(x); x.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} x.remove(); toast(ok ? '已复制' : '复制失败，请手动选取'); };
+  try { navigator.clipboard.writeText(t).then(() => toast('已复制'), fallback); } catch (e) { fallback(); }
+}
+
+/* ---------- storage ---------- */
+function load() {
+  try {
+    localStorage.setItem(KEY + '_t', '1'); localStorage.removeItem(KEY + '_t');
+    const s = localStorage.getItem(KEY);
+    if (s) { const o = JSON.parse(s); if (o && Array.isArray(o.decks)) { store.decks = o.decks; store.groups = Array.isArray(o.groups) ? o.groups.filter(g => typeof g === 'string' && g) : []; store.collapsed = (o.collapsed && typeof o.collapsed === 'object') ? o.collapsed : {}; store.settings = Object.assign(store.settings, o.settings || {}); } }
+  } catch (e) { storageOK = false; }
+  syncGroups();
+}
+function save() {
+  if (!storageOK) return;
+  try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { storageOK = false; render(); }
+}
+
+/* ---------- data helpers ---------- */
+function syncGroups() {
+  store.groups = [...new Set(store.groups)];
+  for (const d of store.decks) { if (d.group) { if (!store.groups.includes(d.group)) store.groups.push(d.group); } else delete d.group; }
+}
+const dname = d => d.group ? d.group + ' › ' + d.name : d.name;
+const isG = sc => typeof sc === 'string' && sc.startsWith('g:');
+const isM = sc => typeof sc === 'string' && sc.startsWith('m:');
+const deck = id => store.decks.find(d => d.id === id);
+function find(did, cid) { const d = deck(did); if (!d) return null; const c = d.cards.find(x => x.id === cid); return c ? { d, c } : null; }
+const isDue = c => !c.seen || c.due <= Date.now();
+function status(c) { if (!c.seen) return 'new'; if (c.interval >= 21) return 'mastered'; return 'learning'; }
+function poolFor(scope) { const out = []; for (const d of store.decks) if (scope === 'all' || d.id === scope || (isG(scope) && d.group === scope.slice(2)) || (isM(scope) && scope.slice(2).split(',').includes(d.id))) for (const c of d.cards) out.push({ d, c }); return out; }
+function match(c, f) { if (f === 'known') return !!c.known; if (c.known) return false; if (f === 'due') return isDue(c); if (f === 'weak') return c.weak; if (f === 'wrong') return c.inWrong; return true; }
+function counts(scope) { const p = poolFor(scope), a = p.filter(x => !x.c.known); return { total: p.length, known: p.length - a.length, due: a.filter(x => isDue(x.c)).length, fresh: a.filter(x => !x.c.seen).length, weak: a.filter(x => x.c.weak).length, wrong: a.filter(x => x.c.inWrong).length, mastered: p.filter(x => x.c.known || status(x.c) === 'mastered').length, learning: a.filter(x => status(x.c) === 'learning').length }; }
+
+function normCard(c) {
+  if (!c || typeof c !== 'object') return null;
+  const q = String(c.q ?? c.question ?? c.front ?? '').trim();
+  const a = String(c.a ?? c.answer ?? c.back ?? '').trim();
+  if (!q || !a) return null;
+  let wrong = c.wrong ?? c.distractors ?? [];
+  if (typeof wrong === 'string') wrong = wrong.split('\n');
+  wrong = Array.isArray(wrong) ? wrong.map(x => String(x).trim()).filter(x => x && x !== a) : [];
+  const n = (v, d) => (v !== null && v !== undefined && v !== '' && Number.isFinite(+v)) ? +v : d;
+  return { id: c.id || uid(), q, a, wrong: [...new Set(wrong)], note: String(c.note ?? '').trim(), weak: !!c.weak, inWrong: !!c.inWrong, known: !!c.known, streak: n(c.streak, 0), ease: n(c.ease, 2.3), interval: n(c.interval, 0), due: n(c.due, 0), seen: !!c.seen, reps: n(c.reps, 0), lastAt: n(c.lastAt, 0) };
+}
+function parseJSON(text) {
+  let t = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  try { return JSON.parse(t); } catch (e) {}
+  const i = t.search(/[\[{]/), j = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+  if (i >= 0 && j > i) { try { return JSON.parse(t.slice(i, j + 1)); } catch (e) {} }
+  throw new Error('读不出 JSON。请确认粘贴的是完整内容（从 { 到 }），没有被截断。');
+}
+function toDecks(obj, fallback) {
+  let decks;
+  if (Array.isArray(obj)) decks = (obj.length && obj[0] && obj[0].cards) ? obj : [{ name: fallback, cards: obj }];
+  else if (obj && Array.isArray(obj.decks)) decks = obj.decks;
+  else if (obj && Array.isArray(obj.cards)) decks = [obj];
+  else throw new Error('找不到 decks 或 cards 字段。');
+  return decks.map(d => ({ id: d.id, group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌组').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
+}
+function mergeDecks(decks) {
+  let added = 0, skipped = 0, newDecks = 0;
+  for (const d of decks) {
+    let t = store.decks.find(x => x.name === d.name);
+    if (!t) { t = { id: uid(), name: d.name, cards: [] }; if (d.group) t.group = d.group; store.decks.push(t); newDecks++; }
+    const keys = new Set(t.cards.map(c => key(c.q)));
+    for (const c of d.cards) { const k = key(c.q); if (keys.has(k)) { skipped++; continue; } keys.add(k); t.cards.push(c); added++; }
+  }
+  syncGroups(); save();
+  return { added, skipped, newDecks };
+}
+
+/* ---------- spaced repetition ---------- */
+function rate(c, r) {
+  const now = Date.now();
+  c.seen = true; c.lastAt = now;
+  let ease = c.ease || 2.3, iv = c.interval || 0;
+  if (r === 0) {
+    ease = Math.max(1.3, ease - 0.2); iv = 0; c.reps = 0; c.due = now + 10 * 60000; c.streak = 0; c.inWrong = true;
+  } else {
+    c.reps = (c.reps || 0) + 1;
+    if (r === 1) { iv = Math.max(1, Math.round(Math.max(iv, 1) * 1.2)); ease = Math.max(1.3, ease - 0.15); }
+    else if (r === 2) { iv = c.reps <= 1 ? 1 : c.reps === 2 ? 3 : Math.max(1, Math.round(iv * ease)); }
+    else { iv = c.reps <= 1 ? 3 : Math.max(2, Math.round(Math.max(iv, 1) * ease * 1.3)); ease += 0.15; }
+    c.due = now + iv * 86400000;
+    c.streak = (c.streak || 0) + 1;
+    if (c.inWrong && c.streak >= 2) c.inWrong = false;
+  }
+  c.ease = ease; c.interval = iv;
+}
+function lbl(iv, r) { if (r === 0) return '10 分'; if (iv < 30) return iv + ' 天'; return Math.round(iv / 30) + ' 月'; }
+function preview(c, r) { const t = Object.assign({}, c); rate(t, r); return lbl(t.interval, r); }
+
+/* ---------- session ---------- */
+function buildQueue(scope, f, n) {
+  let p = shuffle(poolFor(scope).filter(x => match(x.c, f)));
+  const g = x => x.c.weak ? 0 : x.c.inWrong ? 1 : x.c.seen ? 2 : 3;
+  p.sort((a, b) => g(a) - g(b));
+  if (n > 0) p = p.slice(0, n);
+  return p.map(x => ({ did: x.d.id, cid: x.c.id }));
+}
+function startSession(cfg) {
+  const queue = buildQueue(cfg.scope, cfg.filter, cfg.count);
+  if (!queue.length) { toast('没有符合的卡片'); return; }
+  S = { cfg, queue, idx: 0, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true };
+  store.settings = { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode, count: cfg.count }; save();
+  enter();
+  go('study');
+}
+function enter() {
+  while (S.queue[S.idx]) { const f0 = find(S.queue[S.idx].did, S.queue[S.idx].cid); if (f0 && (S.cfg.filter === 'known' || !f0.c.known)) break; S.idx++; }
+  S.flipped = false; S.picked = null; S.opts = null; S.easy = false; S.anim = true;
+  const it = S.queue[S.idx];
+  if (it && S.cfg.mode === 'mcq') { const f = find(it.did, it.cid); S.opts = makeOptions(it.did, f.c); }
+}
+function makeOptions(did, c) {
+  let wr = shuffle((c.wrong || []).filter(w => w && w !== c.a)).slice(0, 3);
+  if (wr.length < 3) {
+    const seen = new Set([c.a, ...wr]);
+    const d = deck(did);
+    const pools = [d.cards, ...store.decks.filter(x => x.id !== did).map(x => x.cards)];
+    for (const pool of pools) {
+      for (const o of shuffle(pool.map(x => x.a))) { if (wr.length >= 3) break; if (!seen.has(o)) { seen.add(o); wr.push(o); } }
+      if (wr.length >= 3) break;
+    }
+  }
+  if (wr.length < 1) return null;
+  return shuffle([c.a, ...wr]);
+}
+function advance(r) {
+  const it = S.queue[S.idx], f = find(it.did, it.cid);
+  if (f) {
+    rate(f.c, r); S.stats[r]++;
+    if (r === 0 && !S.requeued.has(it.cid)) { S.requeued.add(it.cid); S.queue.push({ did: it.did, cid: it.cid }); }
+  }
+  S.idx++; save(); enter(); window.scrollTo(0, 0); render();
+}
+
+/* ---------- navigation ---------- */
+function go(name, id) {
+  route = { name, id }; sheet = null; modal = null; sel = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; pick = null;
+  if (name === 'deck') { listQuery = ''; listFilter = 'all'; }
+  try { history.pushState(route, ''); } catch (e) {}
+  window.scrollTo(0, 0); render();
+}
+window.addEventListener('popstate', e => {
+  route = e.state || { name: 'home' };
+  if (route.name === 'study' && !S) route = { name: 'home' };
+  if (route.name === 'deck' && !deck(route.id)) route = { name: 'home' };
+  sheet = null; modal = null; sel = null; render();
+});
+try { history.replaceState(route, ''); } catch (e) {}
+
+/* ---------- views ---------- */
+function ringHTML(c) {
+  const C = 2 * Math.PI * 18, t = c.total || 1;
+  const m = c.mastered / t * C, l = c.learning / t * C, pct = Math.round(c.mastered / t * 100);
+  return `<div class="ring"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="rb" cx="22" cy="22" r="18"/><circle class="rl" cx="22" cy="22" r="18" stroke-dasharray="${l.toFixed(2)} ${(C - l).toFixed(2)}" stroke-dashoffset="${(-m).toFixed(2)}"/><circle class="rm" cx="22" cy="22" r="18" stroke-dasharray="${m.toFixed(2)} ${(C - m).toFixed(2)}"/></svg><span>${pct}%</span></div>`;
+}
+function statsHTML(c, withTotal) {
+  let h = '';
+  if (withTotal) h += `<span><b>${c.total}</b> 张</span>`;
+  h += `<span><b>${c.due}</b> 待复习</span>`;
+  if (c.weak) h += `<span><b>${c.weak}</b> 不熟</span>`;
+  if (c.wrong) h += `<span><b>${c.wrong}</b> 错题</span>`;
+  if (c.known) h += `<span><b>${c.known}</b> 已熟悉</span>`;
+  return `<div class="stats">${h}</div>`;
+}
+
+function viewHome() {
+  let h = `<header class="top"><h1 class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z"/><circle cx="18.2" cy="5.2" r="1.1" fill="currentColor"/><circle cx="21" cy="9" r=".6" fill="currentColor"/></svg><i>Moon</i></h1><div class="row"><button class="pill" data-act="go" data-r="import">${ic('plus')}导入</button><button class="pill icon" data-act="all-cards" aria-label="全部题目">${ic('list')}</button><button class="pill icon" data-act="go" data-r="backup" aria-label="备份与还原">${ic('save')}</button></div></header>`;
+  if (!storageOK) h += `<div class="warn">这个浏览器目前无法保存进度，关掉页面后进度会消失。建议用 Chrome 开启文件；复习完也可以到右上角的备份先存档。</div>`;
+  if (!store.decks.length) {
+    return h + `<div class="card center" style="padding:32px 22px"><p class="serif" style="font-size:20px;margin:0 0 6px">还没有牌组</p><p class="sub" style="margin:0 0 20px">把笔记拍照给 AI 产生 JSON，再贴进来就能开始复习。</p><button class="btn" data-act="go" data-r="import">导入题目</button><button class="pill" style="width:100%;justify-content:center;min-height:50px;margin-top:10px" data-act="new-deck">${ic('plus')}新建空牌组</button></div>`;
+  }
+  const all = counts('all');
+  const run = store.settings.count > 0 ? Math.min(all.due, store.settings.count) : all.due;
+  const hh = h; h = '';
+  h += `<section class="hero">`;
+  if (all.due > 0) {
+    let sp = '';
+    if (all.fresh) sp += `<span><b>${all.fresh}</b> 新卡</span>`;
+    if (all.weak) sp += `<span><b>${all.weak}</b> 不熟</span>`;
+    if (all.wrong) sp += `<span><b>${all.wrong}</b> 错题</span>`;
+    h += `<div class="hero-row"><span class="n">${all.due}</span><span class="cap">张今天要复习</span></div><div class="stats">${sp || '&nbsp;'}</div>`;
+    h += `<div class="go"><button class="btn" data-act="quick">开始复习（${run} 张）</button><button class="more" data-act="adjust">调整</button></div>`;
+  } else {
+    h += `<div class="done-t">今天的卡都复习完了</div><div class="stats"><span>想多练的话，可以挑不熟或错题再来一轮</span></div><div class="go"><button class="btn" data-act="adjust">自选范围复习</button></div>`;
+  }
+  h += `</section>`;
+  h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">全部混合</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
+  h = pick ? hh + `<p class="sub" style="margin:4px 4px 0">点选要复习的牌组，也可以点群组一次选整组</p>` : hh + h + `<button class="pill" style="width:100%;justify-content:center;min-height:50px;margin:2px 0 6px;color:var(--acc);font-weight:600" data-act="pick-start">${ic('check')}选择牌组复习</button>`;
+  const deckRow = d => { const c = counts(d.id); if (pick) { const on = pick.has(d.id); return `<div class="deck"><button class="deck-main pk${on ? ' on' : ''}" data-act="pick-toggle" data-id="${d.id}" aria-pressed="${on}"><span class="chk-c" style="${on ? 'background:var(--acc);border-color:var(--acc);color:var(--acc-ink)' : ''}">${ic('check')}</span><div class="info"><div class="name">${esc(d.name)}</div>${statsHTML(c, true)}</div></button></div>`; } return `<div class="deck"><button class="deck-main" data-act="sheet" data-id="${d.id}">${ringHTML(c)}<div class="info"><div class="name">${esc(d.name)}</div>${statsHTML(c, true)}</div></button><button class="pill icon flat" data-act="manage" data-id="${d.id}" aria-label="管理“${esc(d.name)}”">${ic('more')}</button></div>`; };
+  for (const g of store.groups) {
+    const ds = store.decks.filter(d => d.group === g), gc = counts('g:' + g), col = !!store.collapsed[g];
+    if (pick) { const all_ = ds.length && ds.every(d => pick.has(d.id)); h += `<div class="grp"><button class="grp-h${all_ ? ' on' : ''}" data-act="pick-grp" data-g="${esc(g)}"><span class="chk-c">${ic('check')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 个牌组</span></button></div><div class="grp-body">${ds.map(deckRow).join('')}</div>`; continue; }
+    h += `<div class="grp"><button class="grp-h" data-act="grp-toggle" data-g="${esc(g)}" aria-expanded="${!col}"><span class="chev${col ? '' : ' open'}">${ic('chev')}</span><span class="gname">${esc(g)}</span><span class="gmeta">${ds.length} 个牌组${gc.due ? ' · ' + gc.due + ' 待复习' : ''}</span></button><button class="pill icon flat" data-act="grp-manage" data-g="${esc(g)}" aria-label="管理群组“${esc(g)}”">${ic('more')}</button></div>`;
+    if (!col) h += `<div class="grp-body">${ds.length ? ds.map(deckRow).join('') : '<p class="grp-empty">这个群组还没有牌组，点右上角 ⋯ 新增。</p>'}</div>`;
+  }
+  const loose = store.decks.filter(d => !d.group);
+  if (store.groups.length && loose.length) h += `<div class="glabel">未分组</div>`;
+  h += loose.map(deckRow).join('');
+  if (pick) return h + `<div style="height:170px"></div><div class="selbar"><div class="selin"><div class="selrow"><span class="sub">已选 ${pick.size} 个牌组 · ${poolFor('m:' + [...pick].join(',')).length} 张卡片</span><button class="pill flat" data-act="pick-all">全选</button></div><div class="row"><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="pick-cancel">取消</button><button class="btn" data-act="pick-go" ${pick.size ? '' : 'disabled'}>下一步：选范围与方式</button></div></div></div>`;
+  h += `<div class="row" style="margin-top:14px"><button class="pill" style="flex:1;justify-content:center;min-height:50px" data-act="new-deck">${ic('plus')}新增牌组</button><button class="pill" style="flex:1;justify-content:center;min-height:50px" data-act="new-group">${ic('plus')}新增群组</button></div>`;
+  h += `<div class="legend"><span><i style="background:var(--good-ring)"></i>熟练</span><span><i style="background:var(--warn-ring)"></i>学习中</span></div>`;
+  return h;
+}
+
+function sheetHTML() {
+  const sh = sheet, name = sh.scope === 'all' ? '全部混合' : isG(sh.scope) ? sh.scope.slice(2) : isM(sh.scope) ? '已选 ' + sh.scope.slice(2).split(',').filter(i => deck(i)).length + ' 个牌组' : deck(sh.scope).name;
+  const pool = poolFor(sh.scope);
+  const cnt = f => pool.filter(x => match(x.c, f)).length;
+  const n = cnt(sh.filter);
+  const frow = (v, text) => `<button class="rowopt ${sh.filter === v ? 'on' : ''}" data-act="set-filter" data-v="${v}"><span class="dot">${ic('check')}</span><span class="t">${text}</span><span class="c">${cnt(v)}</span></button>`;
+  const seg = (act, val, cur, text) => `<button class="${String(cur) === String(val) ? 'on' : ''}" data-act="${act}" data-v="${val}">${text}</button>`;
+  const run = Math.min(n, sh.count || n);
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div>
+    <h2 class="t">${esc(name)}</h2>
+    <div class="sub" style="margin:8px 0 0">范围</div>
+    <div class="opts">${frow('due', '待复习与新卡')}${frow('weak', '不熟')}${frow('wrong', '错题本')}${frow('all', '全部卡片')}${frow('known', '已熟悉')}</div>
+    <div class="sub">方式</div>
+    <div class="seg">${seg('set-mode', 'flip', sh.mode, '翻卡')}${seg('set-mode', 'mcq', sh.mode, '选择题')}</div>
+    <div class="sub">每轮张数</div>
+    <div class="seg">${seg('set-count', 10, sh.count, '10')}${seg('set-count', 20, sh.count, '20')}${seg('set-count', 50, sh.count, '50')}${seg('set-count', 0, sh.count, '不限')}</div>
+    <button class="btn" data-act="start" ${n ? '' : 'disabled'}>${n ? `开始复习（${run} 张）` : '这个范围没有卡片'}</button>
+  </div></div>`;
+}
+
+function ratesHTML(c) {
+  return `<div class="rates">${[0, 1, 2, 3].map(r => `<button class="rate r${r}" data-act="rate" data-r="${r}">${RATE_LABELS[r]}<small>${preview(c, r)}</small></button>`).join('')}</div>`;
+}
+
+function viewStudy() {
+  const it = S.queue[S.idx];
+  if (!it) return viewDone();
+  const { c } = find(it.did, it.cid);
+  const mode = (S.cfg.mode === 'mcq' && S.opts) ? 'mcq' : 'flip';
+  const pct = Math.round(S.idx / S.queue.length * 100);
+  const enterCls = S.anim ? ' enter' : ''; S.anim = false;
+  let h = `<header class="top study"><button class="pill" data-act="go" data-r="home">${ic('back')}结束</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="编辑这张卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>`;
+  const tags = (c.inWrong ? '<span class="badge b">错题</span>' : '') + (c.seen ? '' : '<span class="badge">新卡</span>');
+  if (mode === 'mcq') {
+    h += `<div class="stage${enterCls}"><div class="face solo"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div></div>`;
+    S.opts.forEach((o, i) => {
+      let cls = 'opt', k = String.fromCharCode(65 + i);
+      if (S.picked !== null) { if (o === c.a) { cls += ' ok'; k = ic('check'); } else if (i === S.picked) { cls += ' bad'; k = '×'; } }
+      h += `<button class="${cls}" data-act="pick" data-i="${i}" ${S.picked !== null ? 'disabled' : ''}><span class="k">${k}</span><span class="ot">${esc(o)}</span></button>`;
+    });
+    h += `</div>`;
+    if (S.picked !== null) {
+      const ok = S.opts[S.picked] === c.a;
+      h += `<div class="fb ${ok ? 'ok-t' : 'bad-t'}">${ok ? '答对了' : '答错了，正确答案已标示'}</div>`;
+      if (c.note) h += `<div class="card nt" style="white-space:pre-wrap;margin-top:6px">${esc(c.note)}</div>`;
+      if (ok) h += `<div style="margin:10px 0 14px"><button class="chip ${S.easy ? 'on' : ''}" data-act="easy">这题很简单</button></div>`;
+      h += `<button class="btn" data-act="next">下一题</button>`;
+    }
+  } else {
+    h += `<div class="fl-wrap"><div class="stage${enterCls}"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
+      <div class="face front" data-act="flip"><div class="tags">${tags}</div><div class="qt">${esc(c.q)}</div><div class="hint">点一下翻面</div></div>
+      <div class="face back"><div class="qs">${esc(c.q)}</div><div class="hair"></div><div class="at">${esc(c.a)}</div>${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
+    </div></div></div>
+    <div id="ctl">${S.flipped ? ratesHTML(c) : `<button class="btn" data-act="flip">显示答案</button>`}</div></div>`;
+  }
+  return h;
+}
+function viewDone() {
+  const st = S.stats, total = st.reduce((a, b) => a + b, 0);
+  const col = ['var(--bad)', 'var(--warn)', 'var(--good)', 'var(--acc)'];
+  return `<div class="done"><header class="top"><h1>这一轮完成</h1></header>
+  <div class="card center" style="padding:24px 18px"><p class="sub" style="margin:0">共作答 ${total} 次</p>
+  <div class="stat">${[0, 1, 2, 3].map(r => `<div><b style="color:${col[r]}">${st[r]}</b><span>${RATE_LABELS[r]}</span></div>`).join('')}</div>
+  <p class="sub" style="margin:0">答错的卡片已进错题本，之后会更常出现。</p></div>
+  <button class="btn" data-act="again-round">再来一轮</button>
+  <button class="pill" style="width:100%;justify-content:center;margin-top:12px;min-height:50px" data-act="go" data-r="home">回首页</button></div>`;
+}
+
+function badgesHTML(c) {
+  const st = status(c);
+  return (c.weak ? '<span class="badge w">不熟</span>' : '') + (c.inWrong ? '<span class="badge b">错题</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : `<span class="badge">${st === 'new' ? '新卡' : st === 'mastered' ? '熟练' : '学习中'}</span>`);
+}
+function cardTags(c) {
+  if (c.known) return 'known';
+  const t = [];
+  if (c.weak) t.push('weak'); if (c.inWrong) t.push('wrong'); if (!c.seen) t.push('new'); if (isDue(c)) t.push('due');
+  return t.join(' ');
+}
+function applyListFilter() {
+  const q = listQuery.trim().toLowerCase();
+  let first = null, vis = 0;
+  document.querySelectorAll('#list .item').forEach(el => {
+    const okQ = !q || el.dataset.s.includes(q);
+    const okF = listFilter === 'all' || (' ' + el.dataset.t + ' ').includes(' ' + listFilter + ' ');
+    const show = okQ && okF;
+    el.style.display = show ? '' : 'none';
+    el.classList.remove('nb');
+    if (show) { vis++; if (!first) first = el; }
+  });
+  if (first) first.classList.add('nb');
+  const e = $('#empty'); if (e) e.style.display = vis ? 'none' : '';
+}
+function viewDeck() {
+  const isAll = route.id === 'all';
+  const d = isAll ? null : deck(route.id);
+  if (!isAll && !d) return viewHome();
+  const list = poolFor(route.id);
+  const title = isAll ? '全部题目' : d.name;
+  let h = sel
+    ? `<header class="top"><button class="pill" data-act="sel-done">完成</button><span class="sub">点选要处理的卡片</span></header>`
+    : `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button><div class="row"><button class="pill" data-act="sel-start">选择</button>${isAll ? '' : `<button class="pill" data-act="new-card">${ic('plus')}新增</button>`}</div></header>`;
+  h += `<h1 style="margin:0 0 ${isAll ? 4 : 14}px;overflow:hidden;text-overflow:ellipsis">${esc(title)}</h1>`;
+  if (isAll) h += `<p class="sub" style="margin:0 0 12px">共 ${list.length} 张，来自 ${store.decks.length} 个牌组</p>`;
+  h += `<input type="text" id="search" placeholder="搜索问题或答案" value="${esc(listQuery)}" aria-label="搜索">`;
+  const F = [['all', '全部'], ['due', '待复习'], ['weak', '不熟'], ['wrong', '错题'], ['new', '新卡'], ['known', '已熟悉']];
+  const cnt = k => k === 'all' ? list.length : list.filter(x => (' ' + cardTags(x.c) + ' ').includes(' ' + k + ' ')).length;
+  h += `<div class="fchips">${F.map(([k, t]) => `<button class="chip${listFilter === k ? ' on' : ''}" data-act="lf" data-v="${k}" data-count="${cnt(k)}">${t} ${cnt(k)}</button>`).join('')}</div>`;
+  h += `<div class="list" id="list">`;
+  if (!list.length) h += `<p class="sub center" style="padding:16px 0">还没有卡片</p>`;
+  for (const { d: dk, c } of list) {
+    const sx = esc((c.q + ' ' + c.a + (isAll ? ' ' + dk.name : '')).toLowerCase());
+    const sub = isAll ? `<small>${esc(dk.name)}</small>` : '';
+    const common = `data-did="${dk.id}" data-cid="${c.id}" data-s="${sx}" data-t="${cardTags(c)}"`;
+    if (sel) h += `<button class="item${c.known ? ' known' : ''}${sel.ids.has(c.id) ? ' sel' : ''}" data-act="sel-toggle" ${common}><span class="chk-c">${ic('check')}</span><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
+    else h += `<button class="item${c.known ? ' known' : ''}" data-act="edit" ${common}><span class="t">${esc(c.q)}${sub}</span><span class="badges">${badgesHTML(c)}</span></button>`;
+  }
+  h += `<p id="empty" class="sub center" style="display:none;padding:16px 0">没有符合的卡片</p></div>`;
+  if (sel) {
+    h += `<div style="height:230px"></div><div class="selbar"><div class="selin"><div class="selrow"><span id="selcount" class="sub">已选 ${sel.ids.size} 张</span><button class="pill flat" data-act="sel-all">全选</button></div><div class="row"><button class="btn" data-act="bulk-known">标为已熟悉</button><button class="pill" style="min-height:54px;border-radius:16px;flex:none" data-act="bulk-unknown">取消已熟悉</button></div><div class="row" style="margin-top:8px"><button class="pill" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-move">移到其他牌组</button><button class="pill danger" style="flex:1;min-height:48px;justify-content:center" data-act="bulk-del">删除</button></div></div></div>`;
+  } else if (!isAll) {
+    h += `<h2>牌组设置</h2><div class="row" style="flex-wrap:wrap"><button class="pill" data-act="rename">重命名</button><button class="pill" data-act="deck-group">移到群组</button><button class="pill" data-act="reset">重置进度</button><button class="pill danger" data-act="del-deck">删除牌组</button></div>`;
+  }
+  return h;
+}
+function grpSheetHTML() {
+  const g = grpSheet.g, n = store.decks.filter(d => d.group === g).length;
+  const opt = (act, label, extra) => `<button class="rowopt${extra && extra.danger ? ' danger' : ''}" data-act="${act}" data-g="${esc(g)}"><span class="t">${label}</span></button>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 个牌组</div><div class="opts">${opt('grp-study', '复习整个群组')}${opt('new-deck', '在此群组新增牌组')}${opt('grp-rename', '重命名群组')}${opt('grp-del', '删除群组（牌组会保留）', { danger: true })}</div></div></div>`;
+}
+function deckGrpHTML() {
+  const d = deck(deckGrpSheet.did), cur = d.group || '';
+  const o = (g, label) => `<button class="rowopt ${cur === g ? 'on' : ''}" data-act="deck-to-group" data-g="${esc(g)}"><span class="dot">${ic('check')}</span><span class="t">${esc(label)}</span></button>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">移到哪个群组</h2><div class="sub" style="margin:6px 0 12px">${esc(d.name)}</div><div class="opts">${o('', '不放进群组')}${store.groups.map(g => o(g, g)).join('')}<button class="rowopt" data-act="deck-group-new"><span class="dot" style="color:var(--acc);border-color:var(--acc)">${ic('plus')}</span><span class="t">新建群组…</span></button></div></div></div>`;
+}
+function moveHTML() {
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">移到哪个牌组</h2><div class="sub" style="margin:6px 0 12px">已选 ${sel ? sel.ids.size : 0} 张</div><div class="opts">${store.decks.map(d => `<button class="rowopt" data-act="move-to" data-id="${d.id}"><span class="t">${esc(dname(d))}</span><span class="c">${d.cards.length}</span></button>`).join('')}<button class="rowopt" data-act="move-new"><span class="dot" style="color:var(--acc);border-color:var(--acc)">${ic('plus')}</span><span class="t">新建牌组…</span></button></div></div></div>`;
+}
+function doMove(tid) {
+  const tg = deck(tid); if (!tg || !sel) return;
+  const keys = new Set(tg.cards.map(c => key(c.q)));
+  const picked = []; let skipped = 0;
+  for (const d of store.decks) {
+    if (d.id === tid) continue;
+    const keep = [];
+    for (const c of d.cards) {
+      if (sel.ids.has(c.id)) { const k = key(c.q); if (keys.has(k)) { skipped++; keep.push(c); } else { keys.add(k); picked.push(c); } }
+      else keep.push(c);
+    }
+    d.cards = keep;
+  }
+  tg.cards.push(...picked);
+  sel = null; moveSheet = null; save(); render();
+  toast(`已移动 ${picked.length} 张到“${tg.name}”${skipped ? `，${skipped} 张因重复未移动` : ''}`);
+}
+
+function modalHTML() {
+  let c = { q: '', a: '', wrong: [], note: '' };
+  if (modal.cid) { const f = find(modal.did, modal.cid); if (f) c = f.c; }
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div>
+    <h2 class="t">${modal.cid ? '编辑卡片' : '新增卡片'}</h2>
+    <label class="f">问题</label><textarea id="m-q">${esc(c.q)}</textarea>
+    <label class="f">正确答案</label><textarea id="m-a" style="min-height:72px">${esc(c.a)}</textarea>
+    <label class="f">干扰选项（一行一个，可留空，选择题会自动补）</label><textarea id="m-w" style="min-height:92px">${esc((c.wrong || []).join('\n'))}</textarea>
+    <label class="f">补充说明（可留空）</label><textarea id="m-n" style="min-height:72px">${esc(c.note || '')}</textarea>
+    <label class="chk"><input type="checkbox" id="m-k" ${c.known ? 'checked' : ''}><span>已熟悉（不再出现在复习中）</span></label>
+    <div class="row" style="margin-top:18px"><button class="btn" data-act="save-card">保存</button>${modal.cid ? '<button class="pill danger" data-act="del-card" style="min-height:54px;border-radius:16px">删除</button>' : ''}<button class="pill" data-act="close" style="min-height:54px;border-radius:16px">取消</button></div>
+  </div></div>`;
+}
+
+function importDeckOptions() {
+  const cur = deck(store.settings.importTarget) ? store.settings.importTarget : '';
+  return `<option value="">跟随文件里的牌组名称</option>` + store.decks.map(d => `<option value="${d.id}"${d.id === cur ? ' selected' : ''}>${esc(dname(d))}（${d.cards.length} 张）</option>`).join('');
+}
+function viewImport() {
+  return `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button></header>
+  <h1 style="margin-bottom:6px">导入题目</h1>
+  <div class="card">
+    <label class="f" style="margin-top:0">粘贴 AI 产生的 JSON</label>
+    <textarea id="imp-text" placeholder='{"decks":[{"name":"…","cards":[…]}]}' style="min-height:160px"></textarea>
+    <label class="f">或选择 .json 文件</label>
+    <input type="file" id="imp-file" accept=".json,application/json,text/plain">
+    <label class="f">导入到哪个牌组</label>
+    <select id="imp-deck">${importDeckOptions()}</select>
+    <label class="f">或新建牌组（填了就以这个名称为准）</label>
+    <input type="text" id="imp-name" placeholder="例如：第三章">
+    <p class="sub" style="margin:8px 0 0">选了牌组或填了名称，文件里的所有题目都会放进这个牌组，不看文件里的牌组名称。都没选时，才会用文件里的牌组名称。</p>
+    <button class="btn" data-act="do-import" style="margin-top:18px">导入</button>
+    <div id="imp-msg" class="msg"></div>
+  </div>
+  <div class="card"><div class="row" style="justify-content:space-between"><b>给 AI 的提示词</b><button class="pill" data-act="copy-prompt">复制</button></div>
+  <pre>${esc(PROMPT)}</pre><p class="sub" style="margin:0">拍照时一起贴给 AI。重复导入同一牌组时，相同的题目会自动跳过。</p></div>
+  <button class="pill" style="width:100%;justify-content:center;min-height:50px" data-act="sample">加载示例牌组试用</button>`;
+}
+
+function viewBackup() {
+  return `<header class="top"><button class="pill" data-act="go" data-r="home">${ic('back')}返回</button></header>
+  <h1 style="margin-bottom:6px">备份与还原</h1>
+  <div class="card"><div class="${storageOK ? 'ok-t' : 'bad-t'}" style="font-weight:600">${storageOK ? '进度会自动存在这个浏览器' : '这个浏览器无法保存进度'}</div>
+  <p class="sub" style="margin:6px 0 0">清除浏览器数据、换手机或换浏览器都会让进度消失。偶尔备份一次比较安心。</p></div>
+  <h2>备份</h2>
+  <div class="row"><button class="btn" data-act="export-file">保存为文件</button><button class="pill" style="min-height:54px;border-radius:16px" data-act="export-copy">复制文字</button></div>
+  <h2>还原（会替换目前全部数据）</h2>
+  <div class="card" style="margin-top:0"><textarea id="res-text" placeholder="粘贴备份内容，或选择文件"></textarea>
+  <input type="file" id="res-file" accept=".json,application/json,text/plain" style="margin-top:10px">
+  <button class="btn" data-act="do-restore" style="margin-top:14px">还原</button><div id="res-msg" class="msg"></div></div>
+  <h2>清除</h2><button class="pill danger" data-act="clear-all">清除全部数据</button>`;
+}
+
+function render() {
+  let h;
+  switch (route.name) {
+    case 'study': h = S ? viewStudy() : viewHome(); break;
+    case 'deck': h = viewDeck(); break;
+    case 'import': h = viewImport(); break;
+    case 'backup': h = viewBackup(); break;
+    default: h = viewHome();
+  }
+  if (sheet && route.name === 'home') h += sheetHTML();
+  if (modal) h += modalHTML();
+  if (moveSheet && route.name === 'deck') h += moveHTML();
+  if (grpSheet && route.name === 'home') h += grpSheetHTML();
+  if (deckGrpSheet && route.name === 'deck') h += deckGrpHTML();
+  if (dlg) h += dlgHTML();
+  $('#app').innerHTML = h;
+  if (route.name === 'deck') applyListFilter();
+}
+
+/* ---------- in-page dialogs (no native prompt/confirm) ---------- */
+function askText(title, value, cb) {
+  dlg = { type: 'text', title, value: value || '', cb };
+  render();
+  const i = $('#dlg-in'); if (i) { i.focus(); i.select(); }
+}
+function askConfirm(title, msg, okLabel, cb, danger) {
+  dlg = { type: 'confirm', title, msg, ok: okLabel || '确定', cb, danger: !!danger };
+  render();
+}
+function dlgHTML() {
+  const d = dlg;
+  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">取消</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '确定' : d.ok)}</button></div></div></div>`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'dlg-in') { e.preventDefault(); const b = document.querySelector('[data-act=dlg-ok]'); if (b) b.click(); }
+});
+
+/* ---------- events ---------- */
+function readFileInto(input, target) {
+  const f = input.files && input.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => { $(target).value = r.result; toast('已读入文件'); }; r.readAsText(f);
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'imp-file') readFileInto(e.target, '#imp-text');
+  if (e.target.id === 'res-file') readFileInto(e.target, '#res-text');
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'search') { listQuery = e.target.value; applyListFilter(); }
+});
+function openSheet(scope) { sheet = { scope, filter: store.settings.filter, mode: store.settings.mode, count: store.settings.count }; render(); }
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'close' && dlg) { if (e.target === t) { dlg = null; render(); } return; }
+  if (act === 'close') { if (e.target === t || t.tagName === 'BUTTON') { sheet = null; modal = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; render(); } return; }
+  switch (act) {
+    case 'go': go(t.dataset.r); break;
+    case 'sheet': openSheet(t.dataset.id); break;
+    case 'quick': startSession({ scope: 'all', filter: 'due', mode: store.settings.mode, count: store.settings.count }); break;
+    case 'adjust': openSheet('all'); break;
+    case 'set-filter': sheet.filter = t.dataset.v; render(); break;
+    case 'set-mode': sheet.mode = t.dataset.v; render(); break;
+    case 'set-count': sheet.count = +t.dataset.v; render(); break;
+    case 'start': startSession({ scope: sheet.scope, filter: sheet.filter, mode: sheet.mode, count: sheet.count }); break;
+    case 'again-round': startSession(S.cfg); break;
+    case 'manage': go('deck', t.dataset.id); break;
+    case 'flip': {
+      if (S.flipped) break;
+      S.flipped = true;
+      const it = S.queue[S.idx], f = it && find(it.did, it.cid), el = document.querySelector('.flip'), ctl = $('#ctl');
+      if (el && ctl && f) { el.classList.add('is-flipped'); ctl.innerHTML = ratesHTML(f.c); } else render();
+      break;
+    }
+    case 'rate': advance(+t.dataset.r); break;
+    case 'pick': S.picked = +t.dataset.i; render(); break;
+    case 'easy': S.easy = !S.easy; render(); break;
+    case 'next': { const it = S.queue[S.idx], f = find(it.did, it.cid); const ok = S.opts[S.picked] === f.c.a; advance(ok ? (S.easy ? 3 : 2) : 0); break; }
+    case 'weak': { const it = S.queue[S.idx], f = find(it.did, it.cid); if (f) { f.c.weak = !f.c.weak; save(); render(); toast(f.c.weak ? '已标记为不熟' : '已取消标记'); } break; }
+    case 'known': {
+      const it = S.queue[S.idx], f = it && find(it.did, it.cid); if (!f) break;
+      if (f.c.known) { f.c.known = false; save(); render(); toast('已取消已熟悉'); }
+      else { f.c.known = true; f.c.weak = false; S.idx++; save(); enter(); window.scrollTo(0, 0); render(); toast('已标为已熟悉，之后不再出现'); }
+      break;
+    }
+    case 'sel-start': sel = { ids: new Set() }; render(); break;
+    case 'sel-done': sel = null; render(); break;
+    case 'sel-toggle': {
+      const id = t.dataset.cid;
+      if (sel.ids.has(id)) sel.ids.delete(id); else sel.ids.add(id);
+      t.classList.toggle('sel', sel.ids.has(id)); $('#selcount').textContent = `已选 ${sel.ids.size} 张`; break;
+    }
+    case 'sel-all': {
+      const items = [...document.querySelectorAll('#list .item')].filter(el => el.style.display !== 'none');
+      const allOn = items.length && items.every(el => sel.ids.has(el.dataset.cid));
+      items.forEach(el => { if (allOn) sel.ids.delete(el.dataset.cid); else sel.ids.add(el.dataset.cid); el.classList.toggle('sel', !allOn); });
+      $('#selcount').textContent = `已选 ${sel.ids.size} 张`; break;
+    }
+    case 'bulk-known': case 'bulk-unknown': {
+      const n = sel.ids.size; if (!n) { toast('先点选卡片'); return; }
+      const on = act === 'bulk-known';
+      store.decks.forEach(d => d.cards.forEach(c => { if (sel.ids.has(c.id)) { c.known = on; if (on) c.weak = false; } }));
+      sel = null; save(); render(); toast(on ? `已将 ${n} 张标为已熟悉` : `已取消 ${n} 张的已熟悉`); break;
+    }
+    case 'bulk-del': {
+      const n = sel.ids.size; if (!n) { toast('先点选卡片'); return; }
+      askConfirm('删除卡片', `删除选中的 ${n} 张卡片？此操作无法恢复。`, '删除', () => {
+        store.decks.forEach(d => { d.cards = d.cards.filter(c => !sel.ids.has(c.id)); });
+        sel = null; save(); render(); toast(`已删除 ${n} 张`);
+      }, true);
+      break;
+    }
+    case 'bulk-move': { if (!sel.ids.size) { toast('先点选卡片'); return; } moveSheet = {}; render(); break; }
+    case 'move-to': doMove(t.dataset.id); break;
+    case 'move-new': {
+      askText('新牌组名称', '', nm => {
+        if (!nm || !nm.trim()) return;
+        let tg = store.decks.find(x => x.name === nm.trim());
+        if (!tg) { tg = { id: uid(), name: nm.trim(), cards: [] }; store.decks.push(tg); }
+        doMove(tg.id);
+      });
+      break;
+    }
+    case 'lf': {
+      listFilter = t.dataset.v;
+      document.querySelectorAll('.fchips .chip').forEach(el => el.classList.toggle('on', el.dataset.v === listFilter));
+      applyListFilter(); break;
+    }
+    case 'dlg-cancel': dlg = null; render(); break;
+    case 'dlg-ok': { const d = dlg; const v = d.type === 'text' ? $('#dlg-in').value : null; dlg = null; render(); d.cb(v); break; }
+    case 'all-cards': go('deck', 'all'); break;
+    case 'new-deck': {
+      const ng = t.dataset.g || ''; grpSheet = null;
+      askText('新增牌组', '', nm => {
+        if (!nm || !nm.trim()) return;
+        const name = nm.trim(); let tg = store.decks.find(x => x.name === name);
+        if (tg) { toast('已有同名牌组，已为你打开'); go('deck', tg.id); return; }
+        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; store.decks.push(tg); save(); go('deck', tg.id); toast('已创建，点右上角“新增”加入题目');
+      });
+      break;
+    }
+    case 'pick-start': pick = new Set(); render(); window.scrollTo(0, 0); break;
+    case 'pick-cancel': pick = null; render(); break;
+    case 'pick-toggle': { const i = t.dataset.id; if (pick.has(i)) pick.delete(i); else pick.add(i); render(); break; }
+    case 'pick-grp': {
+      const ids = store.decks.filter(d => d.group === t.dataset.g).map(d => d.id);
+      const all_ = ids.length && ids.every(i => pick.has(i));
+      ids.forEach(i => all_ ? pick.delete(i) : pick.add(i)); render(); break;
+    }
+    case 'pick-all': { if (pick.size === store.decks.length) pick.clear(); else store.decks.forEach(d => pick.add(d.id)); render(); break; }
+    case 'pick-go': { if (!pick.size) return; const sc = 'm:' + [...pick].join(','); pick = null; openSheet(sc); break; }
+    case 'new-group': {
+      askText('新增群组（例如：英语）', '', nm => {
+        nm = (nm || '').trim(); if (!nm) return;
+        if (store.groups.includes(nm)) { toast('已有同名群组'); return; }
+        store.groups.push(nm); save(); render(); toast('已创建，可把牌组移进来');
+      });
+      break;
+    }
+    case 'grp-toggle': { const g = t.dataset.g; store.collapsed[g] = !store.collapsed[g]; save(); render(); break; }
+    case 'grp-manage': grpSheet = { g: t.dataset.g }; render(); break;
+    case 'grp-study': { const g = t.dataset.g; grpSheet = null; openSheet('g:' + g); break; }
+    case 'grp-rename': {
+      const g = t.dataset.g; grpSheet = null;
+      askText('重命名群组', g, nm => {
+        nm = (nm || '').trim(); if (!nm || nm === g) return;
+        if (store.groups.includes(nm)) { toast('已有同名群组'); return; }
+        store.groups = store.groups.map(x => x === g ? nm : x);
+        store.decks.forEach(d => { if (d.group === g) d.group = nm; });
+        if (store.collapsed[g]) { store.collapsed[nm] = true; delete store.collapsed[g]; }
+        save(); render();
+      });
+      break;
+    }
+    case 'grp-del': {
+      const g = t.dataset.g; grpSheet = null;
+      askConfirm('删除群组', `删除群组“${g}”？里面的牌组不会被删除，会回到“未分组”。`, '删除', () => {
+        store.groups = store.groups.filter(x => x !== g);
+        store.decks.forEach(d => { if (d.group === g) delete d.group; });
+        delete store.collapsed[g]; save(); render();
+      }, true);
+      break;
+    }
+    case 'deck-group': deckGrpSheet = { did: route.id }; render(); break;
+    case 'deck-to-group': {
+      const d = deck(deckGrpSheet.did), g = t.dataset.g;
+      if (g) d.group = g; else delete d.group;
+      deckGrpSheet = null; syncGroups(); save(); render(); toast(g ? '已移到“' + g + '”' : '已移出群组'); break;
+    }
+    case 'deck-group-new': {
+      const did = deckGrpSheet.did; deckGrpSheet = null;
+      askText('新群组名称', '', nm => {
+        nm = (nm || '').trim(); if (!nm) return;
+        const d = deck(did); d.group = nm; syncGroups(); store.collapsed[nm] = false; save(); render(); toast('已移到“' + nm + '”');
+      });
+      break;
+    }
+    case 'edit': modal = { did: t.dataset.did, cid: t.dataset.cid }; render(); break;
+    case 'new-card': modal = { did: route.id, cid: null }; render(); break;
+    case 'save-card': {
+      const q = $('#m-q').value.trim(), a = $('#m-a').value.trim();
+      if (!q || !a) { toast('问题和答案都要填'); return; }
+      const wrong = $('#m-w').value.split('\n').map(s => s.trim()).filter(s => s && s !== a);
+      const note = $('#m-n').value.trim(), known = $('#m-k').checked;
+      const d = deck(modal.did);
+      if (modal.cid) { const c = d.cards.find(x => x.id === modal.cid); Object.assign(c, { q, a, wrong, note, known }); if (known) c.weak = false; if (S && S.opts && S.queue[S.idx] && S.queue[S.idx].cid === modal.cid) S.opts = makeOptions(modal.did, c); }
+      else d.cards.push(normCard({ q, a, wrong, note, known }));
+      modal = null; save(); render(); toast('已保存'); break;
+    }
+    case 'del-card': {
+      askConfirm('删除卡片', '确定删除这张卡片？', '删除', () => {
+        const d = deck(modal.did); d.cards = d.cards.filter(x => x.id !== modal.cid);
+        modal = null; save();
+        if (S && route.name === 'study') { enter(); }
+        render();
+      }, true);
+      break;
+    }
+    case 'rename': { const d = deck(route.id); askText('重命名牌组', d.name, n => { if (n && n.trim()) { d.name = n.trim(); save(); render(); } }); break; }
+    case 'reset': { askConfirm('重置进度', '重置这个牌组的所有学习进度？（题目不会删除）', '重置', () => { deck(route.id).cards.forEach(c => Object.assign(c, { seen: false, reps: 0, interval: 0, due: 0, ease: 2.3, streak: 0, inWrong: false, weak: false })); save(); render(); toast('已重置'); }, true); break; }
+    case 'del-deck': { const d = deck(route.id); askConfirm('删除牌组', `删除“${d.name}”与其中 ${d.cards.length} 张卡片？此操作无法恢复。`, '删除', () => { store.decks = store.decks.filter(x => x.id !== d.id); save(); go('home'); }, true); break; }
+    case 'copy-prompt': copyText(PROMPT); break;
+    case 'do-import': {
+      const msg = $('#imp-msg'), text = $('#imp-text').value;
+      if (!text.trim()) { msg.className = 'msg bad-t'; msg.textContent = '请先粘贴内容或选择文件'; return; }
+      try {
+        const typed = $('#imp-name').value.trim(), picked = $('#imp-deck').value;
+        const pd = picked ? deck(picked) : null;
+        const target = typed || (pd ? pd.name : '');
+        let decks = toDecks(parseJSON(text), target || '未分类');
+        if (target) decks = [{ name: target, cards: decks.flatMap(d => d.cards) }];
+        const total = decks.reduce((n, d) => n + d.cards.length, 0);
+        if (!total) throw new Error('没有找到有效的卡片（每张需要 q 与 a）。');
+        const r = mergeDecks(decks);
+        if (target) { const td = store.decks.find(x => x.name === target); store.settings.importTarget = td ? td.id : ''; save(); }
+        render();
+        const m = $('#imp-msg');
+        if (m) { m.className = 'msg ok-t'; m.textContent = `导入完成${target ? `，已放进“${target}”` : ''}：新增 ${r.added} 张${r.skipped ? `，跳过重复 ${r.skipped} 张` : ''}${r.newDecks ? `，创建 ${r.newDecks} 个牌组` : ''}。`; }
+      } catch (err) { msg.className = 'msg bad-t'; msg.textContent = err.message; }
+      break;
+    }
+    case 'sample': {
+      const r = mergeDecks([{ name: '示例牌组', cards: [
+        { q: '光合作用发生在细胞的哪个构造？', a: '叶绿体', wrong: ['粒线体', '细胞核', '核糖体'], note: '叶绿体含有叶绿素，能吸收光能。' },
+        { q: '水的化学式是什么？', a: 'H₂O', wrong: ['CO₂', 'NaCl'] },
+        { q: '台湾最高的山是？', a: '玉山', note: '海拔约 3,952 米。' },
+        { q: '一年有几个节气？', a: '24 个' },
+        { q: '光在真空中的速度约为每秒多少公里？', a: '约 30 万公里' }
+      ].map(normCard) }]);
+      toast(r.added ? '已加载示例' : '示例已存在'); go('home'); break;
+    }
+    case 'export-file': {
+      const json = JSON.stringify({ app: 'review-cards', version: 2, groups: store.groups, decks: store.decks }, null, 1);
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      a.download = 'review-backup-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('已生成备份文件'); break;
+    }
+    case 'export-copy': copyText(JSON.stringify({ app: 'review-cards', version: 2, groups: store.groups, decks: store.decks })); break;
+    case 'do-restore': {
+      const msg = $('#res-msg'); let decks, rg = [];
+      try { const ro = parseJSON($('#res-text').value); decks = toDecks(ro, '未分类'); if (ro && Array.isArray(ro.groups)) rg = ro.groups.filter(x => typeof x === 'string' && x); }
+      catch (err) { msg.className = 'msg bad-t'; msg.textContent = err.message; break; }
+      askConfirm('还原备份', `将以备份内容替换目前数据（${decks.length} 个牌组）。确定？`, '还原', () => {
+        store.decks = decks.map(d => Object.assign({ id: d.id || uid(), name: d.name, cards: d.cards }, d.group ? { group: d.group } : {})); store.groups = rg; store.collapsed = {}; syncGroups(); save();
+        const m = $('#res-msg'); if (m) { m.className = 'msg ok-t'; m.textContent = `已还原 ${decks.length} 个牌组。`; }
+      }, true);
+      break;
+    }
+    case 'clear-all': askConfirm('清除全部数据', '清除全部牌组与进度？此操作无法恢复。', '继续', () => askConfirm('再确认一次', '真的要清除吗？建议先备份。', '全部清除', () => { store.decks = []; store.groups = []; store.collapsed = {}; save(); go('home'); }, true), true); break;
+  }
+});
+
+const THEMES = ['indigo', 'rila', 'milk'];
+const THEME_NAMES = { indigo: '靛蓝', rila: '拉拉熊', milk: '草莓牛奶' };
+function applyTheme() {
+  const t = 'rila';
+  document.documentElement.dataset.theme = t;
+  const m = document.querySelector('meta[name=theme-color]');
+  if (m) { try { m.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || m.content; } catch (e) {} }
+}
+load();
+applyTheme();
+render();
+</script>
+<script>
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }
+</script>
+</body>
+</html>
