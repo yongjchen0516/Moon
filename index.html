@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Moon">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
+
 <style>
 :root{
   --bg:#E8EBE9;--card:#F8F8F5;--ink:#1F2733;--sub:#5A6472;--line:#D5DAD8;
@@ -578,7 +579,7 @@ function viewHome() {
   }
   h += `</section>`;
   h += goalHTML();
-  h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">混合題目</div>${statsHTML(all, true)}</div></button><span class="spacer" aria-hidden="true"></span></div>`;
+  h += `<div class="deck"><button class="deck-main" data-act="sheet" data-id="all">${ringHTML(all)}<div class="info"><div class="name">混合題目</div>${statsHTML(all, true)}</div></button></div>`;
   h = pick ? hh + `<p class="sub" style="margin:4px 4px 0">點選要複習的牌組，也可以點群組一次選整組</p>` : hh + h + `<button class="pill" style="width:100%;justify-content:center;min-height:50px;margin:2px 0 6px;color:var(--acc);font-weight:600" data-act="pick-start">${ic('check')}選擇牌組複習</button>`;
   const deckRow = d => { const c = counts(d.id); if (pick) { const on = pick.has(d.id); return `<div class="deck"><button class="deck-main pk${on ? ' on' : ''}" data-act="pick-toggle" data-id="${d.id}" aria-pressed="${on}"><span class="chk-c" style="${on ? 'background:var(--acc);border-color:var(--acc);color:var(--acc-ink)' : ''}">${ic('check')}</span><div class="info"><div class="name">${esc(d.name)}${d.type === 'vocab' ? '<span class="badge" style="margin-left:8px;vertical-align:middle">單字</span>' : ''}</div>${statsHTML(c, true)}</div></button></div>`; } return `<div class="deck"><button class="deck-main" data-act="sheet" data-id="${d.id}">${ringHTML(c)}<div class="info"><div class="name">${esc(d.name)}${d.type === 'vocab' ? '<span class="badge" style="margin-left:8px;vertical-align:middle">單字</span>' : ''}</div>${statsHTML(c, true)}</div></button><button class="pill icon flat" data-act="manage" data-id="${d.id}" aria-label="管理“${esc(d.name)}”">${ic('more')}</button></div>`; };
   for (const g of store.groups) {
