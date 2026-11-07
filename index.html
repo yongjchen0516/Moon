@@ -171,6 +171,10 @@ label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
 .top.study{padding-bottom:10px}
 .cnt{font:600 16px var(--sans);font-variant-numeric:tabular-nums}
 .cnt span{color:var(--sub);font-weight:400}
+.ordrow{padding-right:8px;gap:8px;background:var(--card);position:relative}
+.ordrow .t{flex:1}
+.ord-h{width:56px;height:48px;display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--sub);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.ordrow.drag{z-index:3;box-shadow:0 8px 24px rgba(60,40,20,.25);border-radius:14px}
 .jrow .jn{width:30px;flex:none;color:var(--sub);font-size:13px;font-variant-numeric:tabular-nums}
 .jrow .t small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
 .jrow.cur{background:var(--acc-soft)}
@@ -304,6 +308,7 @@ let sel = null;     // deck select mode {ids:Set}
 let moveSheet = null;
 let pick = null;      // Set of deck ids when choosing decks to review
 let grpSheet = null;   // {g}
+let ordSheet = null;   // {g}
 let deckGrpSheet = null; // {did}
 let dlg = null;
 let listQuery = '', listFilter = 'all';
@@ -396,14 +401,15 @@ function toDecks(obj, fallback) {
   return decks.map(d => ({ id: d.id, type: d.type === 'vocab' ? 'vocab' : '', group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌組').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
 }
 function mergeDecks(decks) {
-  let added = 0, skipped = 0, newDecks = 0; const ids = [], names = [];
+  let added = 0, skipped = 0, newDecks = 0; const ids = [], names = [], fresh = [];
   for (const d of decks) {
-    let t = store.decks.find(x => x.name === d.name);
-    if (!t) { t = { id: uid(), name: d.name, cards: [] }; if (d.group) t.group = d.group; if (d.type) t.type = d.type; store.decks.push(t); newDecks++; }
+    let t = store.decks.find(x => x.name === d.name) || fresh.find(x => x.name === d.name);
+    if (!t) { t = { id: uid(), name: d.name, cards: [] }; if (d.group) t.group = d.group; if (d.type) t.type = d.type; fresh.push(t); newDecks++; }
     if (!ids.includes(t.id)) { ids.push(t.id); names.push(t.name); }
     const keys = new Set(t.cards.map(c => key(c.q)));
     for (const c of d.cards) { const k = key(c.q); if (keys.has(k)) { skipped++; continue; } keys.add(k); t.cards.push(c); added++; }
   }
+  if (fresh.length) store.decks.unshift(...fresh);
   syncGroups(); save();
   return { added, skipped, newDecks, ids, names };
 }
@@ -479,7 +485,7 @@ function advance(r) {
 
 /* ---------- navigation ---------- */
 function go(name, id) {
-  route = { name, id }; sheet = null; modal = null; sel = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; pick = null;
+  route = { name, id }; sheet = null; modal = null; sel = null; moveSheet = null; grpSheet = null; ordSheet = null; deckGrpSheet = null; pick = null;
   if (name === 'deck') { listQuery = ''; listFilter = 'all'; }
   try { history.pushState(route, ''); } catch (e) {}
   window.scrollTo(0, 0); render();
@@ -709,7 +715,7 @@ function viewDeck() {
   const F = [['all', '全部'], ['due', '待複習'], ['weak', '不熟悉'], ['wrong', '錯題'], ['new', '新卡'], ['known', '已熟悉']];
   const cnt = k => k === 'all' ? list.length : list.filter(x => (' ' + cardTags(x.c) + ' ').includes(' ' + k + ' ')).length;
   h += `<div class="fchips">${F.map(([k, t]) => `<button class="chip${listFilter === k ? ' on' : ''}" data-act="lf" data-v="${k}" data-count="${cnt(k)}">${t} ${cnt(k)}</button>`).join('')}</div>`;
-  h += (sel ? '' : `<p class="sub" style="margin:0 0 4px">點一下检视卡片 · 长按多選</p>`) + `<div class="list" id="list">`;
+  h += (sel ? '' : `<p class="sub" style="margin:0 0 4px">點一下檢視卡片 · 長按多選</p>`) + `<div class="list" id="list">`;
   if (!list.length) h += `<p class="sub center" style="padding:16px 0">還沒有卡片</p>`;
   for (const { d: dk, c } of list) {
     const sx = esc((c.q + ' ' + (c.rd || '') + ' ' + c.a + (isAll ? ' ' + dk.name : '')).toLowerCase());
@@ -729,7 +735,12 @@ function viewDeck() {
 function grpSheetHTML() {
   const g = grpSheet.g, n = store.decks.filter(d => d.group === g).length;
   const opt = (act, label, extra) => `<button class="rowopt${extra && extra.danger ? ' danger' : ''}" data-act="${act}" data-g="${esc(g)}"><span class="t">${label}</span></button>`;
-  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 個牌組</div><div class="opts">${opt('grp-study', '複習整個群組')}${opt('new-deck', '在此群組新增牌組')}${opt('grp-rename', '重命名群組')}${opt('grp-del', '刪除群組（牌組會保留）', { danger: true })}</div></div></div>`;
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">${esc(g)}</h2><div class="sub" style="margin:6px 0 12px">${n} 個牌組</div><div class="opts">${opt('grp-study', '複習整個群組')}${opt('new-deck', '在此群組新增牌組')}${n > 1 ? opt('grp-order', '調整牌組順序') : ''}${opt('grp-rename', '重命名群組')}${opt('grp-del', '刪除群組（牌組會保留）', { danger: true })}</div></div></div>`;
+}
+function ordHTML() {
+  const g = ordSheet.g, list = store.decks.filter(d => d.group === g);
+  const rows = list.map(d => `<div class="rowopt ordrow" data-id="${d.id}"><span class="t">${esc(d.name)}</span><span class="ord-h" aria-label="按住拖動排序">≡</span></div>`).join('');
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">調整牌組順序</h2><div class="sub" style="margin:6px 0 12px">${esc(g)} · 按住右侧 ≡ 上下拖動，按“完成”才會儲存</div><div class="opts" id="ordlist">${rows}</div><div class="row" style="margin-top:16px"><button class="btn" data-act="ord-done">完成</button></div></div></div>`;
 }
 function deckGrpHTML() {
   const d = deck(deckGrpSheet.did), cur = d.group || '';
@@ -953,6 +964,7 @@ function render() {
   if (S && S.jump && route.name === 'study') h += jumpHTML();
   if (moveSheet && route.name === 'deck') h += moveHTML();
   if (grpSheet && route.name === 'home') h += grpSheetHTML();
+  if (ordSheet && route.name === 'home') h += ordHTML();
   if (deckGrpSheet && route.name === 'deck') h += deckGrpHTML();
   if (dlg) h += dlgHTML();
   $('#app').innerHTML = h;
@@ -997,7 +1009,7 @@ document.addEventListener('click', e => {
   if (t.dataset.act !== 'sync-now') autoSync();
   const act = t.dataset.act;
   if (act === 'close' && dlg) { if (e.target === t) { dlg = null; render(); } return; }
-  if (act === 'close') { if (e.target === t || t.tagName === 'BUTTON') { if (S) S.jump = false; sheet = null; modal = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; render(); } return; }
+  if (act === 'close') { if (e.target === t || t.tagName === 'BUTTON') { if (S) S.jump = false; sheet = null; modal = null; moveSheet = null; grpSheet = null; ordSheet = null; deckGrpSheet = null; render(); } return; }
   switch (act) {
     case 'go': go(t.dataset.r); break;
     case 'sheet': openSheet(t.dataset.id); break;
@@ -1074,7 +1086,7 @@ document.addEventListener('click', e => {
       askText('新牌組名稱', '', nm => {
         if (!nm || !nm.trim()) return;
         let tg = store.decks.find(x => x.name === nm.trim());
-        if (!tg) { tg = { id: uid(), name: nm.trim(), cards: [] }; store.decks.push(tg); }
+        if (!tg) { tg = { id: uid(), name: nm.trim(), cards: [] }; store.decks.unshift(tg); }
         doMove(tg.id);
       });
       break;
@@ -1093,7 +1105,7 @@ document.addEventListener('click', e => {
         if (!nm || !nm.trim()) return;
         const name = nm.trim(); let tg = store.decks.find(x => x.name === name);
         if (tg) { toast('已有同名牌組，已為你打開'); go('deck', tg.id); return; }
-        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; if (vocab) tg.type = 'vocab'; store.decks.push(tg); save(); go('deck', tg.id); toast('已建立，點右上角“新增”加入題目');
+        tg = { id: uid(), name, cards: [] }; if (ng) tg.group = ng; if (vocab) tg.type = 'vocab'; store.decks.unshift(tg); save(); go('deck', tg.id); toast('已建立，點右上角“新增”加入題目');
       }, '單字牌組（含讀音、例句，預設雙向）');
       break;
     }
@@ -1119,6 +1131,13 @@ document.addEventListener('click', e => {
     }
     case 'grp-toggle': { const g = t.dataset.g; store.collapsed[g] = !store.collapsed[g]; save(); render(); break; }
     case 'grp-manage': grpSheet = { g: t.dataset.g }; render(); break;
+    case 'grp-order': ordSheet = { g: t.dataset.g }; grpSheet = null; render(); break;
+    case 'ord-done': {
+      const g = ordSheet.g, ids = [...document.querySelectorAll('#ordlist .ordrow')].map(r => r.dataset.id);
+      const slots = []; store.decks.forEach((d, k) => { if (d.group === g) slots.push(k); });
+      if (ids.length === slots.length) { const map = new Map(store.decks.map(d => [d.id, d])); slots.forEach((k, n) => { const d = map.get(ids[n]); if (d) store.decks[k] = d; }); save(); }
+      ordSheet = null; render(); toast('已儲存順序'); break;
+    }
     case 'grp-study': { const g = t.dataset.g; grpSheet = null; openSheet('g:' + g); break; }
     case 'grp-rename': {
       const g = t.dataset.g; grpSheet = null;
@@ -1307,6 +1326,30 @@ document.addEventListener('touchend', e => {
   document.addEventListener('touchcancel', clr, { passive: true });
   document.addEventListener('click', e => { if (fired) { fired = false; e.stopPropagation(); e.preventDefault(); } }, true);
   document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('#list .item')) e.preventDefault(); });
+})();
+
+(function(){
+  let od = null;
+  document.addEventListener('pointerdown', e => {
+    const h = e.target.closest && e.target.closest('.ord-h'); if (!h || !ordSheet) return;
+    const row = h.closest('.ordrow'); if (!row) return;
+    od = { row, y0: e.clientY, top0: row.getBoundingClientRect().top, pid: e.pointerId, h };
+    row.classList.add('drag'); try { h.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', e => {
+    if (!od || e.pointerId !== od.pid) return;
+    const row = od.row; row.style.transform = '';
+    const want = od.top0 + (e.clientY - od.y0), center = want + row.offsetHeight / 2;
+    let prev = row.previousElementSibling, next = row.nextElementSibling;
+    while (prev) { const r = prev.getBoundingClientRect(); if (center < r.top + r.height / 2) { row.parentNode.insertBefore(row, prev); prev = row.previousElementSibling; } else break; }
+    while (next) { const r = next.getBoundingClientRect(); if (center > r.top + r.height / 2) { row.parentNode.insertBefore(row, next.nextSibling); next = row.nextElementSibling; } else break; }
+    row.style.transform = 'translateY(' + (want - row.getBoundingClientRect().top) + 'px)';
+    e.preventDefault();
+  }, { passive: false });
+  const end = e => { if (!od || (e.pointerId !== undefined && e.pointerId !== od.pid)) return; od.row.style.transform = ''; od.row.classList.remove('drag'); od = null; };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
 })();
 load();
 applyTheme();
