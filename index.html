@@ -171,6 +171,11 @@ label.f{display:block;font-size:14px;color:var(--sub);margin:14px 0 6px}
 .top.study{padding-bottom:10px}
 .cnt{font:600 16px var(--sans);font-variant-numeric:tabular-nums}
 .cnt span{color:var(--sub);font-weight:400}
+.jrow .jn{width:30px;flex:none;color:var(--sub);font-size:13px;font-variant-numeric:tabular-nums}
+.jrow .t small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
+.jrow.cur{background:var(--acc-soft)}
+.jrow.cur .t{font-weight:600}
+.jrow.seen .t{opacity:.55}
 .pbar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin:0 0 18px}
 .pbar i{display:block;height:100%;background:var(--acc);border-radius:2px;transition:width .35s ease}
 .spacer{flex:none;width:40px}
@@ -257,7 +262,7 @@ pre{white-space:pre-wrap;word-break:break-all;background:var(--bg);border-radius
 .overlay.center-dlg{align-items:center;padding:0 22px}
 .dlg{width:100%;max-width:420px;background:var(--bg);border-radius:24px;padding:22px 20px 20px;box-shadow:var(--sh);animation:rise .22s cubic-bezier(.2,.8,.25,1)}
 .dlg h2.t{font:600 20px/1.4 var(--serif);margin:0 0 12px;letter-spacing:.03em}
-.dmsg{margin:0;line-height:1.7}
+.dmsg{white-space:pre-line;margin:0;line-height:1.7}
 .btn.danger-btn{background:var(--bad);color:#fff}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
@@ -391,15 +396,16 @@ function toDecks(obj, fallback) {
   return decks.map(d => ({ id: d.id, type: d.type === 'vocab' ? 'vocab' : '', group: d.group ? String(d.group).trim() : '', name: String(d.name || fallback || '未命名牌組').trim(), cards: (Array.isArray(d.cards) ? d.cards : []).map(normCard).filter(Boolean) }));
 }
 function mergeDecks(decks) {
-  let added = 0, skipped = 0, newDecks = 0;
+  let added = 0, skipped = 0, newDecks = 0; const ids = [], names = [];
   for (const d of decks) {
     let t = store.decks.find(x => x.name === d.name);
     if (!t) { t = { id: uid(), name: d.name, cards: [] }; if (d.group) t.group = d.group; if (d.type) t.type = d.type; store.decks.push(t); newDecks++; }
+    if (!ids.includes(t.id)) { ids.push(t.id); names.push(t.name); }
     const keys = new Set(t.cards.map(c => key(c.q)));
     for (const c of d.cards) { const k = key(c.q); if (keys.has(k)) { skipped++; continue; } keys.add(k); t.cards.push(c); added++; }
   }
   syncGroups(); save();
-  return { added, skipped, newDecks };
+  return { added, skipped, newDecks, ids, names };
 }
 
 /* ---------- spaced repetition ---------- */
@@ -432,10 +438,11 @@ function buildQueue(scope, f, n, order) {
   return p.map(x => ({ did: x.d.id, cid: x.c.id }));
 }
 function startSession(cfg) {
+  const keepDir = cfg.mode === 'mcq'; if (keepDir) cfg = Object.assign({}, cfg, { dir: 'f' });
   const queue = buildQueue(cfg.scope, cfg.filter, cfg.count, cfg.mode === 'browse' ? (cfg.order || 'seq') : 'rand');
   if (!queue.length) { toast('沒有符合的卡片'); return; }
   S = { cfg, queue, idx: 0, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true };
-  Object.assign(store.settings, { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode === 'browse' ? store.settings.mode : cfg.mode, count: cfg.count, dir: (deck(cfg.scope) && deck(cfg.scope).type === 'vocab') ? (store.settings.dir || 'f') : (cfg.dir || 'f'), tts: cfg.tts || 'auto' }); save();
+  Object.assign(store.settings, { filter: cfg.filter === 'known' ? store.settings.filter : cfg.filter, mode: cfg.mode === 'browse' ? store.settings.mode : cfg.mode, count: cfg.count, dir: keepDir ? store.settings.dir : (deck(cfg.scope) && deck(cfg.scope).type === 'vocab') ? (store.settings.dir || 'f') : (cfg.dir || 'f'), tts: cfg.tts || 'auto' }); save();
   enter();
   go('study');
 }
@@ -555,8 +562,8 @@ function sheetHTML() {
     <div class="sub">方式</div>
     <div class="seg">${seg('set-mode', 'browse', sh.mode, '瀏覽')}${seg('set-mode', 'mcq', sh.mode, '選擇題')}${seg('set-mode', 'flip', sh.mode, '翻卡')}</div>
     ${sh.mode === 'browse' ? `<div class="sub">順序（瀏覽不影響學習進度）</div><div class="seg">${seg('set-order', 'seq', sh.order, '依序')}${seg('set-order', 'rand', sh.order, '隨機')}</div>` : ''}
-    <div class="sub">方向（反向：看答案，回想問題）</div>
-    <div class="seg">${seg('set-dir', 'f', sh.dir, '正向')}${seg('set-dir', 'r', sh.dir, '反向')}${seg('set-dir', 'x', sh.dir, '隨機')}</div>
+    ${sh.mode === 'mcq' ? '' : `<div class="sub">方向（反向：看答案，回想問題）</div>
+    <div class="seg">${seg('set-dir', 'f', sh.dir, '正向')}${seg('set-dir', 'r', sh.dir, '反向')}${seg('set-dir', 'x', sh.dir, '隨機')}</div>`}
     ${TTS_OK ? `<div class="sub">朗讀語言（卡片左上角的喇叭）</div><div class="seg">${seg('set-tts', 'auto', sh.tts, '自動')}${seg('set-tts', 'ja-JP', sh.tts, '日文')}${seg('set-tts', 'en-US', sh.tts, '英文')}${seg('set-tts', 'zh-TW', sh.tts, '中文')}</div>` : ''}
     <div class="sub">每輪張數</div>
     <div class="seg">${seg('set-count', 10, sh.count, '10')}${seg('set-count', 20, sh.count, '20')}${seg('set-count', 50, sh.count, '50')}${seg('set-count', 0, sh.count, '不限')}</div>
@@ -592,13 +599,23 @@ function speak(txt, field, dk) {
   const u = new SpeechSynthesisUtterance(s); u.lang = ttsLang(s, S && S.cfg && S.cfg.tts, info && info.side === field ? info.lang : null); u.rate = 0.9; u.onstart = () => { ttsOn = true; }; u.onend = u.onerror = () => { ttsOn = false; };
   try { speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
+function jumpHTML() {
+  const rows = S.queue.map((it, i) => {
+    const f = find(it.did, it.cid); if (!f) return '';
+    const c = f.c, sx = esc((c.q + ' ' + (c.rd || '') + ' ' + c.a).toLowerCase());
+    const cls = i === S.idx ? ' cur' : (S.vis && S.vis.has(i) ? ' seen' : '');
+    return `<button class="rowopt jrow${cls}" data-act="jump-go" data-i="${i}" data-s="${sx}"><span class="jn">${i + 1}</span><span class="t">${esc(c.q)}${c.rd ? `<small>${esc(c.rd)}</small>` : ''}</span><span class="c">${i === S.idx ? '目前' : (cls === ' seen' ? '已看' : '')}</span></button>`;
+  }).join('');
+  return `<div class="overlay" data-act="close"><div class="sheet"><div class="grab"></div><h2 class="t">跳到哪一張</h2><input type="text" id="jsearch" placeholder="搜尋問題、讀音或答案" aria-label="搜尋" style="margin:8px 0 12px"><div class="opts" id="jlist">${rows}</div></div></div>`;
+}
 function viewBrowse() {
   const it = S.queue[S.idx], f = it && find(it.did, it.cid);
   if (!f) { S.idx++; return S.queue[S.idx] ? viewBrowse() : viewDone(); }
+  (S.vis || (S.vis = new Set())).add(S.idx);
   const c = f.c, fq = S.rev ? c.a : c.q, fa = S.rev ? c.q : c.a, rdH = c.rd ? `<div class="rd">${esc(c.rd)}</div>` : '';
   const last = S.idx >= S.queue.length - 1, pct = Math.round((S.idx + 1) / S.queue.length * 100);
   const tags = (S.rev ? '<span class="badge">反向</span>' : '') + (c.known ? '<span class="badge g">已熟悉</span>' : '');
-  return `<header class="top study"><button class="pill" data-act="${S.from ? 'view-back' : 'go'}" data-r="home">${ic('back')}${S.from ? '返回' : '結束'}</button><span class="cnt">${S.idx + 1}<span> / ${S.queue.length}</span></span><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
+  return `<header class="top study"><button class="pill" data-act="${S.from ? 'view-back' : 'go'}" data-r="home">${ic('back')}${S.from ? '返回' : '結束'}</button><button class="pill cnt" data-act="jump-open" aria-label="跳到指定卡片">${S.idx + 1}<span> / ${S.queue.length} ▾</span></button><button class="pill icon" data-act="edit" data-did="${it.did}" data-cid="${it.cid}" aria-label="編輯這張卡">${ic('pencil')}</button></header><div class="pbar"><i style="width:${pct}%"></i></div><div class="tools"><button class="pill ${c.weak ? 'on-warn' : ''}" data-act="weak" aria-pressed="${c.weak ? 'true' : 'false'}">${ic('star', c.weak)}不熟</button><button class="pill ${c.known ? 'on-good' : ''}" data-act="known" aria-pressed="${c.known ? 'true' : 'false'}">${ic('check')}${c.known ? '取消已熟悉' : '已熟悉'}</button></div>
   <div class="fl-wrap"><div class="stage"><div class="flip${S.flipped ? ' is-flipped' : ''}"><div class="flip-in">
     <div class="face front" data-act="bflip">${spk('q')}<div class="tags">${tags}</div><div class="qt">${esc(fq)}</div><div class="hint">點一下翻面，左右滑動切換</div></div>
     <div class="face back" data-act="bflip">${spk('a')}<div class="qs">${esc(fq)}</div>${S.rev ? '' : rdH}<div class="hair"></div><div class="at">${esc(fa)}</div>${S.rev ? rdH : ''}${c.note ? `<div class="nt">${esc(c.note)}</div>` : ''}</div>
@@ -933,6 +950,7 @@ function render() {
   }
   if (sheet && (route.name === 'home' || route.name === 'deck')) h += sheetHTML();
   if (modal) h += modalHTML();
+  if (S && S.jump && route.name === 'study') h += jumpHTML();
   if (moveSheet && route.name === 'deck') h += moveHTML();
   if (grpSheet && route.name === 'home') h += grpSheetHTML();
   if (deckGrpSheet && route.name === 'deck') h += deckGrpHTML();
@@ -953,7 +971,7 @@ function askConfirm(title, msg, okLabel, cb, danger) {
 }
 function dlgHTML() {
   const d = dlg;
-  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">${d.chk ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="dlg-chk"><span>${esc(d.chk)}</span></label>` : ''}` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">取消</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '確定' : d.ok)}</button></div></div></div>`;
+  return `<div class="overlay center-dlg" data-act="close"><div class="dlg" role="dialog" aria-modal="true"><h2 class="t">${esc(d.title)}</h2>${d.type === 'text' ? `<input type="text" id="dlg-in" value="${esc(d.value)}" maxlength="40" autocomplete="off">${d.chk ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="dlg-chk"><span>${esc(d.chk)}</span></label>` : ''}` : `<p class="dmsg">${esc(d.msg)}</p>`}<div class="row" style="margin-top:18px"><button class="pill" data-act="dlg-cancel" style="flex:1;min-height:52px;justify-content:center;border-radius:16px">${esc(d.cancel || '取消')}</button><button class="btn${d.danger ? ' danger-btn' : ''}" data-act="dlg-ok" style="flex:1;min-height:52px">${esc(d.type === 'text' ? '確定' : d.ok)}</button></div></div></div>`;
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'dlg-in') { e.preventDefault(); const b = document.querySelector('[data-act=dlg-ok]'); if (b) b.click(); }
@@ -969,6 +987,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'res-file') readFileInto(e.target, '#res-text');
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'jsearch') { const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('#jlist .jrow').forEach(r => { r.style.display = (!q || (r.dataset.s || '').includes(q)) ? '' : 'none'; }); return; }
   if (e.target.id === 'search') { listQuery = e.target.value; applyListFilter(); }
 });
 function openSheet(scope) { const isc = isC(scope); sheet = { scope, filter: isc ? 'all' : store.settings.filter, mode: 'browse', count: isc ? 0 : store.settings.count, order: 'seq', dir: (deck(scope) && deck(scope).type === 'vocab') ? 'x' : (store.settings.dir || 'f'), tts: store.settings.tts || 'auto' }; render(); }
@@ -978,7 +997,7 @@ document.addEventListener('click', e => {
   if (t.dataset.act !== 'sync-now') autoSync();
   const act = t.dataset.act;
   if (act === 'close' && dlg) { if (e.target === t) { dlg = null; render(); } return; }
-  if (act === 'close') { if (e.target === t || t.tagName === 'BUTTON') { sheet = null; modal = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; render(); } return; }
+  if (act === 'close') { if (e.target === t || t.tagName === 'BUTTON') { if (S) S.jump = false; sheet = null; modal = null; moveSheet = null; grpSheet = null; deckGrpSheet = null; render(); } return; }
   switch (act) {
     case 'go': go(t.dataset.r); break;
     case 'sheet': openSheet(t.dataset.id); break;
@@ -1065,7 +1084,7 @@ document.addEventListener('click', e => {
       document.querySelectorAll('.fchips .chip').forEach(el => el.classList.toggle('on', el.dataset.v === listFilter));
       applyListFilter(); break;
     }
-    case 'dlg-cancel': dlg = null; render(); break;
+    case 'dlg-cancel': { const d = dlg; dlg = null; render(); if (d && d.onCancel) d.onCancel(); break; }
     case 'dlg-ok': { const d = dlg; const v = d.type === 'text' ? $('#dlg-in').value : null; const vc = !!($('#dlg-chk') && $('#dlg-chk').checked); dlg = null; render(); d.cb(v, vc); break; }
     case 'all-cards': go('deck', 'all'); break;
     case 'new-deck': {
@@ -1145,6 +1164,8 @@ document.addEventListener('click', e => {
       S = { cfg: { scope: route.id || 'all', filter: 'all', mode: 'browse', count: 0, order: 'seq', dir: 'f', tts: store.settings.tts || 'auto' }, queue, idx, stats: [0, 0, 0, 0], requeued: new Set(), flipped: false, picked: null, opts: null, easy: false, anim: true, rev: false, from };
       go('study'); break;
     }
+    case 'jump-open': S.jump = true; render(); { const cur = document.querySelector('.jrow.cur'); if (cur) cur.scrollIntoView({ block: 'center' }); } break;
+    case 'jump-go': { try { speechSynthesis.cancel(); } catch (e) {} S.idx = +t.dataset.i; S.flipped = false; S.rev = S.cfg.dir === 'r'; S.jump = false; window.scrollTo(0, 0); render(); break; }
     case 'view-back': { const f = S && S.from; try { speechSynthesis.cancel(); } catch (e) {} if (f) go(f.name, f.id); else go('home'); break; }
     case 'edit': modal = { did: t.dataset.did, cid: t.dataset.cid }; render(); break;
     case 'new-card': modal = { did: route.id, cid: null }; render(); break;
@@ -1185,9 +1206,13 @@ document.addEventListener('click', e => {
         const total = decks.reduce((n, d) => n + d.cards.length, 0);
         if (!total) throw new Error('沒有找到有效的卡片（每張需要 q 與 a）。');
         const r = mergeDecks(decks);
-        render();
-        const m = $('#imp-msg');
-        if (m) { m.className = 'msg ok-t'; m.textContent = `匯入完成${target ? `，已放進“${target}”` : ''}：新增 ${r.added} 張${r.skipped ? `，跳過重複 ${r.skipped} 張` : ''}${r.newDecks ? `，建立 ${r.newDecks} 個牌組` : ''}。`; }
+        const lines = [`新增 ${r.added} 張卡片${r.newDecks ? `，建立 ${r.newDecks} 個牌組` : ''}`];
+        if (r.skipped) lines.push(`跳過重複 ${r.skipped} 張`);
+        const nm = r.names.length > 4 ? r.names.slice(0, 4).join('、') + `…等 ${r.names.length} 個` : r.names.join('、');
+        lines.push('', '牌組：' + nm);
+        const one = r.ids.length === 1 ? r.ids[0] : null;
+        askConfirm('匯入完成', lines.join('\n'), one ? '查看牌組' : '回主頁', () => { if (one) go('deck', one); else go('home'); });
+        dlg.cancel = '完成'; dlg.onCancel = () => go('home'); dlg.good = true; render();
       } catch (err) { msg.className = 'msg bad-t'; msg.textContent = err.message; }
       break;
     }
@@ -1232,7 +1257,7 @@ function applyTheme() {
 let tx = null, ty = null;
 document.addEventListener('touchstart', e => { const q = e.touches[0]; tx = q.clientX; ty = q.clientY; }, { passive: true });
 document.addEventListener('touchend', e => {
-  if (tx === null || !S || route.name !== 'study' || S.cfg.mode !== 'browse' || sheet || modal || dlg) { tx = null; return; }
+  if (tx === null || !S || route.name !== 'study' || S.cfg.mode !== 'browse' || sheet || modal || dlg || S.jump) { tx = null; return; }
   const q = e.changedTouches[0], dx = q.clientX - tx, dy = q.clientY - ty; tx = null;
   if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
     if (dx < 0 && S.idx >= S.queue.length - 1) return;
